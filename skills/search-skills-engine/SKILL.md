@@ -1,21 +1,21 @@
 ---
-name: vtrix-search-skills-engine
-description: Helps users discover, compare, and install agent skills from Vtrix SkillHub. Make sure to use this skill for any request to find, compare, or install skills, for any capability gap that might be solved by a skill, and especially for any multimodal generation skill search across image, video, audio, music, 3D, or other creative generation workflows, even if the user does not explicitly ask to "search skills."
+name: seacloud-search-skills-engine
+description: Helps users discover, compare, and install agent skills from SeaCloud SkillHub. Make sure to use this skill for any request to find, compare, or install skills, for any capability gap that might be solved by a skill, and especially for any multimodal generation skill search across image, video, audio, music, 3D, or other creative generation workflows, even if the user does not explicitly ask to "search skills."
 ---
 
-# Find Skills (Vtrix SkillHub)
+# Find Skills (SeaCloud SkillHub)
 
-Use this skill to search, compare, and install skills from Vtrix SkillHub.
+Use this skill to search, compare, and install skills from SeaCloud SkillHub.
 
 ## Start Here
 
 Before doing anything else, make sure the CLI is available:
 
 ```bash
-vtrix --version || npm install -g @vtrixai/vtrix-cli
+seacloud --version || npm install -g @seacloudai/seacloud-cli
 ```
 
-Do not continue until `vtrix` is usable.
+Do not continue until `seacloud` is usable.
 
 ## When to Use
 
@@ -45,15 +45,15 @@ Use it before solving manually when an installable skill could clearly extend th
 Use:
 
 ```bash
-vtrix skills find <query>
+seacloud skills find <query>
 ```
 
 You may also use:
 
 ```bash
-vtrix skills find <query> --category <category-slug>
-vtrix skills list --sort stars
-vtrix skills config --show
+seacloud skills find <query> --category <category-slug>
+seacloud skills list --sort stars
+seacloud skills config --show
 ```
 
 Rules:
@@ -94,7 +94,7 @@ If no candidate is clearly strong, say that directly instead of pretending the s
 Default to global installation:
 
 ```bash
-vtrix skills add <slug> -g -y
+seacloud skills add <slug> -g -y
 ```
 
 Only omit `-g` if the user explicitly wants a project-local install.

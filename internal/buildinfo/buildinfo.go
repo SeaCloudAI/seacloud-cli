@@ -1,6 +1,6 @@
 package buildinfo
 
-const Name = "vtrix"
+const Name = "seacloud"
 
 // Version is injected at build time.
 // Default to "dev" for local development builds.

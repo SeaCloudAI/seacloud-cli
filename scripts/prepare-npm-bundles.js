@@ -8,11 +8,11 @@ const rootDir = path.resolve(__dirname, "..");
 const pkg = require(path.join(rootDir, "package.json"));
 
 const version = pkg.version;
-const projectName = pkg.vtrix?.projectName || "vtrix";
+const projectName = pkg.seacloud?.projectName || "seacloud";
 const distDir = path.join(rootDir, "dist");
 const outputDir = path.join(
   rootDir,
-  pkg.vtrix?.bundledAssetsDir || "npm-bundles"
+  pkg.seacloud?.bundledAssetsDir || "npm-bundles"
 );
 
 const artifacts = [

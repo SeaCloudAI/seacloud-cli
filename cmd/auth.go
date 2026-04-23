@@ -5,10 +5,10 @@ import (
 	"os/exec"
 	"runtime"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/auth"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/auth"
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
-	"github.com/VtrixAI/vtrix-cli/internal/config"
 )
 
 var authCmd = &cobra.Command{
@@ -18,13 +18,13 @@ var authCmd = &cobra.Command{
 
 var authLoginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "Log in to your vtrix account",
+	Short: "Log in to your SeaCloud account",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err == nil && cfg.AuthToken != "" {
 			me, err := auth.VerifyToken(cfg.AuthToken)
 			if err == nil {
-				fmt.Printf("Already logged in as %s. Run vtrix auth logout to switch accounts.\n", me.Email)
+				fmt.Printf("Already logged in as %s. Run seacloud auth logout to switch accounts.\n", me.Email)
 				return nil
 			}
 		}
@@ -63,14 +63,14 @@ var authStatusCmd = &cobra.Command{
 
 		if cfg.AuthToken == "" {
 			fmt.Println("Not logged in.")
-			fmt.Println("  Hint: Run: vtrix auth login")
+			fmt.Println("  Hint: Run: seacloud auth login")
 			return nil
 		}
 
 		me, err := auth.VerifyToken(cfg.AuthToken)
 		if err != nil {
 			fmt.Println("Token expired or invalid.")
-			fmt.Println("  Hint: Run: vtrix auth login")
+			fmt.Println("  Hint: Run: seacloud auth login")
 			return nil
 		}
 
@@ -88,7 +88,7 @@ var authStatusCmd = &cobra.Command{
 
 var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
-	Short: "Log out of your vtrix account",
+	Short: "Log out of your SeaCloud account",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := config.Clear(); err != nil {
 			return clierrors.ErrLogout(err)
@@ -100,7 +100,7 @@ var authLogoutCmd = &cobra.Command{
 
 var authSetKeyCmd = &cobra.Command{
 	Use:   "set-key <api-key>",
-	Short: "Set or replace the vtrix API key",
+	Short: "Set or replace the SeaCloud API key",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		newKey := args[0]

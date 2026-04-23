@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
+	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
-	"github.com/VtrixAI/vtrix-cli/internal/config"
-	"github.com/VtrixAI/vtrix-cli/internal/generation"
 )
 
 var taskStatusOutput string
@@ -25,9 +25,9 @@ var taskStatusCmd = &cobra.Command{
 Exit codes:
   0   request succeeded (task may still be in_progress)
   1   error (network, API, missing credentials)`,
-	Example: `  vtrix task status d758n65e878c73cmdg20
-  vtrix task status d758n65e878c73cmdg20 --output url
-  vtrix task status d758n65e878c73cmdg20 --output json`,
+	Example: `  seacloud task status d758n65e878c73cmdg20
+  seacloud task status d758n65e878c73cmdg20 --output url
+  seacloud task status d758n65e878c73cmdg20 --output json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		taskID := args[0]

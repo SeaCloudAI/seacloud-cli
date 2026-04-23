@@ -12,29 +12,29 @@ const pkg = require(path.join(rootDir, "package.json"));
 
 const bundledAssetsDir = path.join(
   rootDir,
-  pkg.vtrix?.bundledAssetsDir || "npm-bundles"
+  pkg.seacloud?.bundledAssetsDir || "npm-bundles"
 );
 const vendorDir = path.join(rootDir, "vendor");
-const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "vtrix-npm-"));
+const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "seacloud-npm-"));
 
 const SUPPORTED_TARGETS = {
-  "darwin-arm64": { os: "darwin", arch: "arm64", ext: "tar.gz", bin: "vtrix" },
-  "darwin-x64": { os: "darwin", arch: "amd64", ext: "tar.gz", bin: "vtrix" },
-  "linux-arm64": { os: "linux", arch: "arm64", ext: "tar.gz", bin: "vtrix" },
-  "linux-x64": { os: "linux", arch: "amd64", ext: "tar.gz", bin: "vtrix" },
-  "win32-x64": { os: "windows", arch: "amd64", ext: "zip", bin: "vtrix.exe" }
+  "darwin-arm64": { os: "darwin", arch: "arm64", ext: "tar.gz", bin: "seacloud" },
+  "darwin-x64": { os: "darwin", arch: "amd64", ext: "tar.gz", bin: "seacloud" },
+  "linux-arm64": { os: "linux", arch: "arm64", ext: "tar.gz", bin: "seacloud" },
+  "linux-x64": { os: "linux", arch: "amd64", ext: "tar.gz", bin: "seacloud" },
+  "win32-x64": { os: "windows", arch: "amd64", ext: "zip", bin: "seacloud.exe" }
 };
 
 async function main() {
   try {
-    if (process.env.VTRIX_SKIP_POSTINSTALL === "1") {
-      log("skip postinstall because VTRIX_SKIP_POSTINSTALL=1");
+    if (process.env.SEACLOUD_SKIP_POSTINSTALL === "1") {
+      log("skip postinstall because SEACLOUD_SKIP_POSTINSTALL=1");
       return;
     }
 
     const target = resolveTarget();
     const releaseSources = resolveReleaseSources();
-    const projectName = pkg.vtrix?.projectName || "vtrix";
+    const projectName = pkg.seacloud?.projectName || "seacloud";
     const version = pkg.version;
 
     const assetName = `${projectName}_${version}_${target.os}_${target.arch}.${target.ext}`;
@@ -79,16 +79,16 @@ function resolveTarget() {
 
 function resolveReleaseBaseUrl() {
   return resolveBaseUrl(
-    process.env.VTRIX_RELEASE_BASE_URL,
-    pkg.vtrix?.releaseBaseUrlTemplate,
-    "missing vtrix.releaseBaseUrlTemplate in package.json"
+    process.env.SEACLOUD_RELEASE_BASE_URL,
+    pkg.seacloud?.releaseBaseUrlTemplate,
+    "missing seacloud.releaseBaseUrlTemplate in package.json"
   );
 }
 
 function resolveReleaseMirrorBaseUrl() {
   return resolveBaseUrl(
-    process.env.VTRIX_RELEASE_MIRROR_BASE_URL,
-    pkg.vtrix?.releaseMirrorBaseUrlTemplate || null,
+    process.env.SEACLOUD_RELEASE_MIRROR_BASE_URL,
+    pkg.seacloud?.releaseMirrorBaseUrlTemplate || null,
     null
   );
 }
@@ -272,13 +272,13 @@ function findFileRecursive(dir, fileName) {
 }
 
 function log(message) {
-  console.log(`[vtrix installer] ${message}`);
+  console.log(`[seacloud installer] ${message}`);
 }
 
 main().catch((err) => {
-  console.error(`[vtrix installer] ${err.message}`);
+  console.error(`[seacloud installer] ${err.message}`);
   console.error(
-    "[vtrix installer] hint: GitHub download failed; package will fall back to bundled archives when available."
+    "[seacloud installer] hint: GitHub download failed; package will fall back to bundled archives when available."
   );
   process.exit(1);
 });

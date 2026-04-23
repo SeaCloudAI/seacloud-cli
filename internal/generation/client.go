@@ -11,18 +11,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VtrixAI/vtrix-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 )
 
 // BaseURL is the generation gateway base URL used by GetTask.
 // Set at build time via ldflags:
 //
-//	go build -ldflags "-X github.com/VtrixAI/vtrix-cli/internal/generation.BaseURL=https://gateway.vtrix.ai"
+//	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL=https://gateway.vtrix.ai"
 //
-// Or at runtime via the VTRIX_GENERATION_URL environment variable.
+// Or at runtime via the SEACLOUD_GENERATION_URL environment variable.
 var BaseURL = ""
 
-// Client is a lightweight HTTP client for the vtrix gateway.
+// Client is a lightweight HTTP client for the SeaCloud gateway.
 // It uses the API key (not the auth JWT) for authorization.
 type Client struct {
 	httpClient *http.Client
@@ -147,10 +147,10 @@ type OutputContent struct {
 }
 
 type UsageInfo struct {
-	Cost      string               `json:"cost"`
-	Quantity  int                  `json:"quantity"`
-	UnitPrice string               `json:"unit_price"`
-	ExtraInfo map[string]any       `json:"extra_info,omitempty"`
+	Cost      string         `json:"cost"`
+	Quantity  int            `json:"quantity"`
+	UnitPrice string         `json:"unit_price"`
+	ExtraInfo map[string]any `json:"extra_info,omitempty"`
 }
 
 func (c *Client) Submit(endpoint, modelID string, params map[string]any) (*TaskStatus, error) {
@@ -220,11 +220,11 @@ func (c *Client) PollTask(generationEndpoint, taskID string, pollInterval, timeo
 
 func (c *Client) GetTask(taskID string) (*TaskStatus, error) {
 	base := BaseURL
-	if env := os.Getenv("VTRIX_GENERATION_URL"); env != "" {
+	if env := os.Getenv("SEACLOUD_GENERATION_URL"); env != "" {
 		base = env
 	}
 	if base == "" {
-		return nil, fmt.Errorf("generation base URL not configured: set VTRIX_GENERATION_URL or rebuild with -ldflags")
+		return nil, fmt.Errorf("generation base URL not configured: set SEACLOUD_GENERATION_URL or rebuild with -ldflags")
 	}
 	endpoint := strings.TrimRight(base, "/") + "/model/v1/generation/task/" + taskID
 	var status TaskStatus

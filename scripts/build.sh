@@ -3,22 +3,22 @@ set -euo pipefail
 
 GO="${GO:-$(which go 2>/dev/null || echo /opt/homebrew/bin/go)}"
 
-APP="vtrix"
+APP="seacloud"
 VERSION="${VERSION:-$(git describe --tags --always --dirty 2>/dev/null || echo "unknown")}"
 DIST="dist"
 
 # Production URLs — use online defaults, allow override via env when needed.
-VTRIX_BASE_URL="${VTRIX_BASE_URL:-https://vtrix.ai}"
-VTRIX_MODELS_URL="${VTRIX_MODELS_URL:-https://cloud-model-spec.vtrix.ai}"
-VTRIX_GENERATION_URL="${VTRIX_GENERATION_URL:-$VTRIX_BASE_URL}"
-VTRIX_SKILLHUB_URL="${VTRIX_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}"
+SEACLOUD_BASE_URL="${SEACLOUD_BASE_URL:-https://vtrix.ai}"
+SEACLOUD_MODELS_URL="${SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}"
+SEACLOUD_GENERATION_URL="${SEACLOUD_GENERATION_URL:-$SEACLOUD_BASE_URL}"
+SEACLOUD_SKILLHUB_URL="${SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}"
 
 LDFLAGS="-s -w \
-  -X github.com/VtrixAI/vtrix-cli/internal/buildinfo.Version=${VERSION} \
-  -X github.com/VtrixAI/vtrix-cli/internal/auth.BaseURL=${VTRIX_BASE_URL} \
-  -X github.com/VtrixAI/vtrix-cli/internal/models.BaseURL=${VTRIX_MODELS_URL} \
-  -X github.com/VtrixAI/vtrix-cli/internal/generation.BaseURL=${VTRIX_GENERATION_URL} \
-  -X github.com/VtrixAI/vtrix-cli/internal/skillhub.BaseURL=${VTRIX_SKILLHUB_URL}"
+  -X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version=${VERSION} \
+  -X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=${SEACLOUD_BASE_URL} \
+  -X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL=${SEACLOUD_MODELS_URL} \
+  -X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL=${SEACLOUD_GENERATION_URL} \
+  -X github.com/SeaCloudAI/seacloud-cli/internal/skillhub.BaseURL=${SEACLOUD_SKILLHUB_URL}"
 
 TARGETS=(
   "darwin/amd64"
@@ -32,10 +32,10 @@ rm -rf "$DIST"
 mkdir -p "$DIST"
 
 echo "Building $APP $VERSION (prod)"
-echo "  BaseURL:          $VTRIX_BASE_URL"
-echo "  ModelsBaseURL:    $VTRIX_MODELS_URL"
-echo "  GenerationBaseURL: $VTRIX_GENERATION_URL"
-echo "  SkillhubBaseURL:  $VTRIX_SKILLHUB_URL"
+echo "  BaseURL:          $SEACLOUD_BASE_URL"
+echo "  ModelsBaseURL:    $SEACLOUD_MODELS_URL"
+echo "  GenerationBaseURL: $SEACLOUD_GENERATION_URL"
+echo "  SkillhubBaseURL:  $SEACLOUD_SKILLHUB_URL"
 echo ""
 
 for target in "${TARGETS[@]}"; do

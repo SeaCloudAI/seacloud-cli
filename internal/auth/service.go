@@ -9,11 +9,11 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/google/uuid"
 )
 
-const clientID = "vtrix-cli"
+const clientID = "seacloud-cli"
 
 // generateKeyPair generates an ephemeral Ed25519 key pair.
 // Returns (publicKeyBase64URL, privateKey, error).
@@ -47,7 +47,7 @@ func Login(openBrowser func(url string) error) (string, string, string, error) {
 		ClientPublicKey: pubKey,
 	})
 	if err != nil {
-		return "", "", "", fmt.Errorf("failed to connect to vtrix: %w", err)
+		return "", "", "", fmt.Errorf("failed to connect to SeaCloud: %w", err)
 	}
 
 	authURL := buildVerificationURL(dc.VerificationURI, dc.UserCode)
@@ -93,7 +93,7 @@ func Login(openBrowser func(url string) error) (string, string, string, error) {
 		case "expired":
 			return "", "", "", &clierrors.CLIError{
 				Message: "authorization code expired",
-				Hint:    "Run: vtrix auth login",
+				Hint:    "Run: seacloud auth login",
 			}
 		case "pending":
 		}
@@ -101,7 +101,7 @@ func Login(openBrowser func(url string) error) (string, string, string, error) {
 
 	return "", "", "", &clierrors.CLIError{
 		Message: "authorization timed out",
-		Hint:    "Run: vtrix auth login",
+		Hint:    "Run: seacloud auth login",
 	}
 }
 

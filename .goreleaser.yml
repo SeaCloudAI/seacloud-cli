@@ -1,12 +1,12 @@
 version: 2
 
-project_name: vtrix
+project_name: seacloud
 dist: dist
 
 builds:
-  - id: vtrix
+  - id: seacloud
     main: .
-    binary: vtrix
+    binary: seacloud
     env:
       - CGO_ENABLED=0
     goos:
@@ -22,16 +22,16 @@ builds:
     ldflags:
       - >-
         -s -w
-        -X github.com/VtrixAI/vtrix-cli/internal/buildinfo.Version={{ .Version }}
-        -X github.com/VtrixAI/vtrix-cli/internal/auth.BaseURL={{ .Env.VTRIX_BASE_URL }}
-        -X github.com/VtrixAI/vtrix-cli/internal/models.BaseURL={{ .Env.VTRIX_MODELS_URL }}
-        -X github.com/VtrixAI/vtrix-cli/internal/generation.BaseURL={{ .Env.VTRIX_GENERATION_URL }}
-        -X github.com/VtrixAI/vtrix-cli/internal/skillhub.BaseURL={{ .Env.VTRIX_SKILLHUB_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version={{ .Version }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL={{ .Env.SEACLOUD_BASE_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL={{ .Env.SEACLOUD_MODELS_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL={{ .Env.SEACLOUD_GENERATION_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/skillhub.BaseURL={{ .Env.SEACLOUD_SKILLHUB_URL }}
 
 archives:
   - id: default
     ids:
-      - vtrix
+      - seacloud
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     formats:
       - tar.gz
@@ -45,8 +45,8 @@ checksum:
 
 release:
   github:
-    owner: VtrixAI
-    name: vtrix-cli
+    owner: SeaCloudAI
+    name: seacloud-cli
 
 source:
   enabled: false

@@ -1,16 +1,16 @@
 <div align="center">
   <p>
-    <img src="./assets/vtrix-cli-image-en.png" alt="Vtrix CLI banner">
+    <img src="./assets/seacloud-cli-image-en.png" alt="SeaCloud CLI banner">
   </p>
-  <h1>Vtrix CLI</h1>
-  <h3>The official CLI for the Vtrix AI Platform</h3>
+  <h1>SeaCloud CLI</h1>
+  <h3>The official CLI for the SeaCloud AI Platform</h3>
   <p>
     Built for AI agents. Authenticate, browse models, submit multimodal tasks,
     track task status, and manage SkillHub skills from any agent or terminal.
   </p>
   <p>
-    <a href="https://www.npmjs.com/package/@vtrixai/vtrix-cli">
-      <img src="https://img.shields.io/npm/v/@vtrixai/vtrix-cli" alt="npm version">
+    <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">
+      <img src="https://img.shields.io/npm/v/@seacloudai/seacloud-cli" alt="npm version">
     </a>
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
     <img src="https://img.shields.io/badge/node-%3E%3D18-339933" alt="Node.js >= 18">
@@ -29,7 +29,7 @@
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
-- **SkillHub integration**: Search, install, and configure agent skills from Vtrix SkillHub.
+- **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, stable command shapes, and copy-pasteable examples.
 
 ## Install
@@ -37,7 +37,7 @@
 ### Install with npm
 
 ```bash
-npm install -g @vtrixai/vtrix-cli
+npm install -g @seacloudai/seacloud-cli
 ```
 
 > Requires Node.js 18+
@@ -47,13 +47,13 @@ npm install -g @vtrixai/vtrix-cli
 Default install:
 
 ```bash
-git clone https://github.com/VtrixAI/vtrix-cli.git
-cd vtrix-cli
+git clone https://github.com/SeaCloudAI/seacloud-cli.git
+cd seacloud-cli
 make install
 ```
 
 > Requires Go 1.26+
-> The installed binary uses the default service endpoints for the public CLI. You can override them with `VTRIX_BASE_URL`, `VTRIX_MODELS_URL`, `VTRIX_GENERATION_URL`, and `VTRIX_SKILLHUB_URL`.
+> The installed binary uses the default service endpoints for the public CLI. You can override them with `SEACLOUD_BASE_URL`, `SEACLOUD_MODELS_URL`, `SEACLOUD_GENERATION_URL`, and `SEACLOUD_SKILLHUB_URL`.
 
 If `/usr/local/bin` requires elevated permissions:
 
@@ -70,7 +70,7 @@ export PATH="$HOME/.local/bin:$PATH"
 
 ### Download binaries
 
-Prebuilt binaries are published on the [Releases](https://github.com/VtrixAI/vtrix-cli/releases) page for:
+Prebuilt binaries are published on the [Releases](https://github.com/SeaCloudAI/seacloud-cli/releases) page for:
 
 - macOS `amd64`
 - macOS `arm64`
@@ -83,100 +83,100 @@ Prebuilt binaries are published on the [Releases](https://github.com/VtrixAI/vtr
 ### Authenticate
 
 ```bash
-vtrix auth login
-vtrix auth status
+seacloud auth login
+seacloud auth status
 ```
 
 ### Browse models
 
 ```bash
-vtrix models list
-vtrix models list --type video
-vtrix models spec kirin_v2_6_i2v
-vtrix models spec kirin_v2_6_i2v --output json
+seacloud models list
+seacloud models list --type video
+seacloud models spec kirin_v2_6_i2v
+seacloud models spec kirin_v2_6_i2v --output json
 ```
 
 ### Run a task
 
 ```bash
-vtrix run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
-vtrix run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
-vtrix run kirin_v2_6_i2v --param mode=pro --output url
+seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
+seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
+seacloud run kirin_v2_6_i2v --param mode=pro --output url
 ```
 
 ### Check task status
 
 ```bash
-vtrix task status <task_id>
-vtrix task status <task_id> --output url
-vtrix task status <task_id> --output json
+seacloud task status <task_id>
+seacloud task status <task_id> --output url
+seacloud task status <task_id> --output json
 ```
 
 ### Manage skills
 
 ```bash
-vtrix skills list
-vtrix skills find prompt
-vtrix skills add some-skill
-vtrix skills config --show
+seacloud skills list
+seacloud skills find prompt
+seacloud skills add some-skill
+seacloud skills config --show
 ```
 
 ## Commands
 
-### `vtrix auth`
+### `seacloud auth`
 
 ```bash
-vtrix auth login
-vtrix auth status
-vtrix auth logout
-vtrix auth set-key <api-key>
+seacloud auth login
+seacloud auth status
+seacloud auth logout
+seacloud auth set-key <api-key>
 ```
 
-### `vtrix models`
+### `seacloud models`
 
 ```bash
-vtrix models list
-vtrix models list --keywords kirin
-vtrix models list --output id
-vtrix models spec <model_id>
-vtrix models spec <model_id> --output json
+seacloud models list
+seacloud models list --keywords kirin
+seacloud models list --output id
+seacloud models spec <model_id>
+seacloud models spec <model_id> --output json
 ```
 
-### `vtrix run`
+### `seacloud run`
 
 ```bash
-vtrix run <model_id> --param key=value
-vtrix run <model_id> --param prompt="hello" --param duration=5
-vtrix run <model_id> --output json
+seacloud run <model_id> --param key=value
+seacloud run <model_id> --param prompt="hello" --param duration=5
+seacloud run <model_id> --output json
 ```
 
 Nested fields use dot notation:
 
 ```bash
-vtrix run some_model \
+seacloud run some_model \
   --param camera_control.type=simple \
   --param camera_control.speed=2
 ```
 
-### `vtrix task`
+### `seacloud task`
 
 ```bash
-vtrix task status <task_id>
+seacloud task status <task_id>
 ```
 
-### `vtrix skills`
+### `seacloud skills`
 
 ```bash
-vtrix skills list
-vtrix skills find [query]
-vtrix skills add <slug>
-vtrix skills config --show
+seacloud skills list
+seacloud skills find [query]
+seacloud skills add <slug>
+seacloud skills config --show
 ```
 
-### `vtrix version`
+### `seacloud version`
 
 ```bash
-vtrix version
+seacloud version
 ```
 
 ## Output and Automation
@@ -188,7 +188,7 @@ vtrix version
 Example:
 
 ```bash
-vtrix --dry-run run kirin_v2_6_i2v --param prompt=test
+seacloud --dry-run run kirin_v2_6_i2v --param prompt=test
 ```
 
 ## Release
@@ -205,7 +205,7 @@ If you maintain releases manually, the repository includes:
 ## Repository Layout
 
 ```text
-vtrix-cli/
+seacloud-cli/
 ├── cmd/                # CLI command definitions
 ├── internal/auth/      # Auth client and login flow
 ├── internal/models/    # Model list and spec APIs

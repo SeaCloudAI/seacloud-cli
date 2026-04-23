@@ -3,16 +3,16 @@ package cmd
 import (
 	"os"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/buildinfo"
 )
 
 var dryRun bool
 
 var rootCmd = &cobra.Command{
-	Use:     "vtrix",
-	Short:   "vtrix CLI - Access multimodal AI with a single API Key",
-	Long:    "vtrix CLI lets you manage your account, browse models, and call multimodal AI services via API Key.",
+	Use:     "seacloud",
+	Short:   "SeaCloud CLI - Access multimodal AI with a single API Key",
+	Long:    "SeaCloud CLI lets you manage your account, browse models, and call multimodal AI services via API Key.",
 	Version: buildinfo.Version,
 }
 

@@ -10,18 +10,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/VtrixAI/vtrix-cli/internal/buildinfo"
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 )
 
 // BaseURL can be overridden at build time via ldflags:
 //
-//	go build -ldflags "-X github.com/VtrixAI/vtrix-cli/internal/auth.BaseURL=https://vtrix.ai"
+//	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=https://vtrix.ai"
 //
-// Or at runtime via the VTRIX_BASE_URL environment variable.
+// Or at runtime via the SEACLOUD_BASE_URL environment variable.
 var BaseURL = ""
 
-const AppID = "@vtrix/cli"
+const AppID = "@seacloud/cli"
 
 type Client struct {
 	httpClient *http.Client
@@ -31,7 +31,7 @@ type Client struct {
 
 func NewClient(token string) *Client {
 	base := BaseURL
-	if env := os.Getenv("VTRIX_BASE_URL"); env != "" {
+	if env := os.Getenv("SEACLOUD_BASE_URL"); env != "" {
 		base = env
 	}
 	return &Client{

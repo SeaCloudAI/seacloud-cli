@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
+	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
+	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
-	"github.com/VtrixAI/vtrix-cli/internal/config"
-	"github.com/VtrixAI/vtrix-cli/internal/generation"
-	"github.com/VtrixAI/vtrix-cli/internal/models"
 )
 
 var (
@@ -35,10 +35,10 @@ are validated before the request is sent.
 Exit codes:
   0   task succeeded
   1   error (validation, network, API, timeout)`,
-	Example: `  vtrix run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
-  vtrix run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
-  vtrix run kirin_v2_6_i2v --param mode=pro --output url
-  vtrix run kirin_v2_6_i2v --param mode=pro --output json`,
+	Example: `  seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
+  seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
+  seacloud run kirin_v2_6_i2v --param mode=pro --output url
+  seacloud run kirin_v2_6_i2v --param mode=pro --output json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modelID := args[0]
@@ -47,7 +47,7 @@ Exit codes:
 		if IsDryRun() {
 			fmt.Fprintf(os.Stderr, "[dry-run] Would execute: POST <spec.api.endpoint>\n")
 			fmt.Fprintf(os.Stderr, "[dry-run] model=%s params=%v\n", modelID, runParams)
-			fmt.Fprintf(os.Stderr, "[dry-run] Fetch spec first with: vtrix models spec %s\n", modelID)
+			fmt.Fprintf(os.Stderr, "[dry-run] Fetch spec first with: seacloud models spec %s\n", modelID)
 			return nil
 		}
 

@@ -1,20 +1,21 @@
 {
-  "name": "@vtrixai/vtrix-cli",
-  "version": "1.0.1",
-  "description": "npm installer wrapper for the vtrix CLI binary",
+  "name": "@seacloudai/seacloud-cli",
+  "version": "0.0.1",
+  "description": "npm installer wrapper for the SeaCloud CLI binary",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
   },
   "bin": {
-    "vtrix": "./scripts/vtrix.js",
-    "vtrix-skills": "./scripts/vtrix-skills.js"
+    "seacloud": "./scripts/seacloud.js",
+    "seacloud-skills": "./scripts/seacloud-skills.js"
   },
   "files": [
+    "assets",
     "npm-bundles",
     "scripts/postinstall.js",
-    "scripts/vtrix.js",
-    "scripts/vtrix-skills.js",
+    "scripts/seacloud.js",
+    "scripts/seacloud-skills.js",
     "vendor"
   ],
   "scripts": {
@@ -30,11 +31,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/VtrixAI/vtrix-cli.git"
+    "url": "https://github.com/SeaCloudAI/seacloud-cli.git"
   },
-  "vtrix": {
+  "seacloud": {
     "bundledAssetsDir": "npm-bundles",
-    "projectName": "vtrix",
-    "releaseBaseUrlTemplate": "https://github.com/VtrixAI/vtrix-cli/releases/download/v{version}"
+    "projectName": "seacloud",
+    "releaseBaseUrlTemplate": "https://github.com/SeaCloudAI/seacloud-cli/releases/download/v{version}"
   }
 }

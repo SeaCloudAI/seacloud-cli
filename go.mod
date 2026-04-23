@@ -1,4 +1,4 @@
-module github.com/VtrixAI/vtrix-cli
+module github.com/SeaCloudAI/seacloud-cli
 
 go 1.26.1
 

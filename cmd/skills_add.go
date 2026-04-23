@@ -5,8 +5,8 @@ import (
 	"os"
 	"runtime"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/skillhub"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/skillhub"
 )
 
 var (

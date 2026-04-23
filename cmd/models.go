@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/models"
 )
 
 var modelsCmd = &cobra.Command{
@@ -25,10 +25,10 @@ var (
 var modelsListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List available models",
-	Long: `List models available on vtrix.
+	Long: `List models available on seacloud.
 
 Output fields (--output json):
-  id                 Model identifier, use this as <model_id> in "vtrix models spec <model_id>"
+  id                 Model identifier, use this as <model_id> in "seacloud models spec <model_id>"
   name               Human-readable model name
   type               Model type: Video | Image | Audio
   description        What the model does
@@ -40,11 +40,11 @@ Pagination fields:
   page               Current page
   page_size          Results per page
   total_pages        Total number of pages`,
-	Example: `  vtrix models list
-  vtrix models list --type video
-  vtrix models list --keywords kirin
-  vtrix models list --output id
-  vtrix models list --output json`,
+	Example: `  seacloud models list
+  seacloud models list --type video
+  seacloud models list --keywords kirin
+  seacloud models list --output id
+  seacloud models list --output json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		result, err := models.List(models.ListParams{
 			Page:     modelsListPage,
@@ -112,8 +112,8 @@ Use --output json to get the raw structured spec including:
   api          Endpoint, method, headers template
   parameters   Full parameter definitions with types, constraints, children
   agent_prompt Preformatted text ready to be injected into an LLM context`,
-	Example: `  vtrix models spec kirin_v2_6_i2v
-  vtrix models spec kirin_v2_6_i2v --output json`,
+	Example: `  seacloud models spec kirin_v2_6_i2v
+  seacloud models spec kirin_v2_6_i2v --output json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modelID := args[0]

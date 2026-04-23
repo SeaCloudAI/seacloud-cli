@@ -1,6 +1,6 @@
 package models
 
-import "github.com/VtrixAI/vtrix-cli/internal/clierrors"
+import "github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 
 func List(params ListParams) (*ModelsListResponse, error) {
 	result, err := NewClient().List(params)

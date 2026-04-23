@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 	"github.com/spf13/cobra"
-	"github.com/VtrixAI/vtrix-cli/internal/buildinfo"
 )
 
 var versionCmd = &cobra.Command{

@@ -11,7 +11,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-const keychainService = "vtrix-cli"
+const keychainService = "seacloud-cli"
 
 // Config holds all credentials. Storage backend is transparent to callers.
 type Config struct {
@@ -133,7 +133,7 @@ func newTokenStore() tokenStore {
 }
 
 func initTokenStore() tokenStore {
-	if os.Getenv("VTRIX_NO_KEYCHAIN") == "1" {
+	if os.Getenv("SEACLOUD_NO_KEYCHAIN") == "1" {
 		return &fileStore{}
 	}
 	if runtime.GOOS == "linux" && os.Getenv("DBUS_SESSION_BUS_ADDRESS") == "" {
@@ -149,7 +149,7 @@ func configPath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "vtrix", "config.yml"), nil
+	return filepath.Join(home, ".config", "seacloud", "config.yml"), nil
 }
 
 func Load() (*Config, error) {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/VtrixAI/vtrix-cli/internal/clierrors"
-	"github.com/VtrixAI/vtrix-cli/internal/models"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 )
 
 func Submit(apiKey, endpoint, modelID string, params map[string]any) (*TaskStatus, error) {

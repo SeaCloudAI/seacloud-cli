@@ -10,7 +10,7 @@ import (
 )
 
 // BaseURL can be overridden at build time via ldflags:
-// Or at runtime via the VTRIX_SKILLHUB_URL environment variable.
+// Or at runtime via the SEACLOUD_SKILLHUB_URL environment variable.
 var BaseURL = ""
 
 type Client struct {
@@ -19,7 +19,7 @@ type Client struct {
 }
 
 func NewClient() *Client {
-	apiURL := os.Getenv("VTRIX_SKILLHUB_URL")
+	apiURL := os.Getenv("SEACLOUD_SKILLHUB_URL")
 	if apiURL == "" {
 		config, err := LoadConfig()
 		if err == nil && config.APIBaseURL != "" {
@@ -149,7 +149,7 @@ func homeDir() string {
 }
 
 func configFilePath() string {
-	return filepath.Join(homeDir(), ".claude", "vtrix-skills-config.json")
+	return filepath.Join(homeDir(), ".claude", "seacloud-skills-config.json")
 }
 
 type Config struct {

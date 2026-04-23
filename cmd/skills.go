@@ -7,7 +7,7 @@ import (
 var skillsCmd = &cobra.Command{
 	Use:   "skills",
 	Short: "Manage agent skills from SkillHub",
-	Long:  "Search, install, and manage agent skills from Vtrix SkillHub",
+	Long:  "Search, install, and manage agent skills from SeaCloud SkillHub",
 }
 
 func init() {

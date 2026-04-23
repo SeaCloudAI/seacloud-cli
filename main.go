@@ -1,6 +1,6 @@
 package main
 
-import "github.com/VtrixAI/vtrix-cli/cmd"
+import "github.com/SeaCloudAI/seacloud-cli/cmd"
 
 func main() {
 	cmd.Execute()

@@ -5,21 +5,21 @@ const path = require("path");
 const { spawn } = require("child_process");
 
 const rootDir = path.resolve(__dirname, "..");
-const exeName = process.platform === "win32" ? "vtrix.exe" : "vtrix";
+const exeName = process.platform === "win32" ? "seacloud.exe" : "seacloud";
 const exePath = path.join(rootDir, "vendor", exeName);
 
 if (!fs.existsSync(exePath)) {
-  console.error("vtrix binary is not installed.");
-  console.error("Reinstall the package: npm install -g @vtrixai/vtrix-cli");
+  console.error("seacloud binary is not installed.");
+  console.error("Reinstall the package: npm install -g @seacloudai/seacloud-cli");
   process.exit(1);
 }
 
-const child = spawn(exePath, ["skills", ...process.argv.slice(2)], {
+const child = spawn(exePath, process.argv.slice(2), {
   stdio: "inherit",
 });
 
 child.on("error", (err) => {
-  console.error(`failed to start vtrix skills: ${err.message}`);
+  console.error(`failed to start seacloud: ${err.message}`);
   process.exit(1);
 });
 

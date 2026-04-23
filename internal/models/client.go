@@ -10,14 +10,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/VtrixAI/vtrix-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 )
 
 // BaseURL can be overridden at build time via ldflags:
 //
-//	go build -ldflags "-X github.com/VtrixAI/vtrix-cli/internal/models.BaseURL=https://cloud.vtrix.ai"
+//	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL=https://cloud.vtrix.ai"
 //
-// Or at runtime via the VTRIX_MODELS_URL environment variable.
+// Or at runtime via the SEACLOUD_MODELS_URL environment variable.
 var BaseURL = ""
 
 type Client struct {
@@ -27,7 +27,7 @@ type Client struct {
 
 func NewClient() *Client {
 	base := BaseURL
-	if env := os.Getenv("VTRIX_MODELS_URL"); env != "" {
+	if env := os.Getenv("SEACLOUD_MODELS_URL"); env != "" {
 		base = env
 	}
 	return &Client{
@@ -38,7 +38,7 @@ func NewClient() *Client {
 
 func (c *Client) get(path string, out any) error {
 	if c.baseURL == "" {
-		return fmt.Errorf("models base URL not configured: set VTRIX_MODELS_URL or rebuild with -ldflags")
+		return fmt.Errorf("models base URL not configured: set SEACLOUD_MODELS_URL or rebuild with -ldflags")
 	}
 	req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
 	if err != nil {

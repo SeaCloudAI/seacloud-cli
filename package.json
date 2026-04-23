@@ -7,8 +7,8 @@
     "access": "public"
   },
   "bin": {
-    "seacloud": "./scripts/seacloud.js",
-    "seacloud-skills": "./scripts/seacloud-skills.js"
+    "seacloud": "scripts/seacloud.js",
+    "seacloud-skills": "scripts/seacloud-skills.js"
   },
   "files": [
     "assets",
@@ -31,7 +31,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/SeaCloudAI/seacloud-cli.git"
+    "url": "git+https://github.com/SeaCloudAI/seacloud-cli.git"
   },
   "seacloud": {
     "bundledAssetsDir": "npm-bundles",

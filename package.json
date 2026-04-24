@@ -1,6 +1,6 @@
 {
   "name": "@seacloudai/seacloud-cli",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "npm installer wrapper for the SeaCloud CLI binary",
   "license": "MIT",
   "publishConfig": {

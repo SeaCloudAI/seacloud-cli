@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
@@ -163,6 +164,10 @@ func (c *Client) GetSpec(modelID string) (*ModelSpec, error) {
 	var spec ModelSpec
 	if err := c.get("/api/v1/skill/models/"+modelID+"/spec", &spec); err != nil {
 		return nil, err
+	}
+	if rewritten := config.RewriteURLThroughFolkosProxy(spec.API.Endpoint); rewritten != spec.API.Endpoint {
+		spec.AgentPrompt = strings.ReplaceAll(spec.AgentPrompt, spec.API.Endpoint, rewritten)
+		spec.API.Endpoint = rewritten
 	}
 	return &spec, nil
 }

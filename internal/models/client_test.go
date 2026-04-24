@@ -3,6 +3,7 @@ package models
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
@@ -45,5 +46,49 @@ func TestClientOmitsAuthHeaderWithoutManagedToken(t *testing.T) {
 
 	if _, err := NewClient().List(ListParams{}); err != nil {
 		t.Fatalf("List returned error: %v", err)
+	}
+}
+
+func TestGetSpecRewritesVtrixEndpointThroughFolkosProxy(t *testing.T) {
+	t.Setenv(config.EnvFolkosProxyBase, "https://folkos-client.dev.folkos.ai/folkos-proxy")
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"status":{"code":200,"message":"ok"},
+			"data":{
+				"model_id":"gpt_image_1",
+				"name":"GPT Image 1",
+				"vendor":"openai",
+				"type":"image",
+				"api":{
+					"endpoint":"https://cloud.vtrix.ai/model/v1/generation",
+					"method":"POST",
+					"headers":{"Authorization":"Bearer {{API_KEY}}"}
+				},
+				"parameters":[],
+				"agent_prompt":"POST https://cloud.vtrix.ai/model/v1/generation\nGET https://cloud.vtrix.ai/model/v1/generation/task/{{id}}"
+			}
+		}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("SEACLOUD_MODELS_URL", server.URL)
+	BaseURL = ""
+
+	spec, err := NewClient().GetSpec("gpt_image_1")
+	if err != nil {
+		t.Fatalf("GetSpec returned error: %v", err)
+	}
+
+	wantEndpoint := "https://folkos-client.dev.folkos.ai/folkos-proxy/model/v1/generation"
+	if spec.API.Endpoint != wantEndpoint {
+		t.Fatalf("expected rewritten endpoint %q, got %q", wantEndpoint, spec.API.Endpoint)
+	}
+	if !strings.Contains(spec.AgentPrompt, wantEndpoint) {
+		t.Fatalf("expected agent prompt to contain rewritten endpoint, got %q", spec.AgentPrompt)
+	}
+	if strings.Contains(spec.AgentPrompt, "https://cloud.vtrix.ai/model/v1/generation") {
+		t.Fatalf("expected original vtrix endpoint to be removed from agent prompt, got %q", spec.AgentPrompt)
 	}
 }

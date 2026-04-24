@@ -53,7 +53,7 @@ make install
 ```
 
 > 需要 Go 1.26+
-> 安装后的二进制会注入公开版本使用的默认服务地址。你也可以通过 `SEACLOUD_BASE_URL`、`SEACLOUD_MODELS_URL`、`SEACLOUD_GENERATION_URL`、`SEACLOUD_SKILLHUB_URL` 覆盖这些地址。
+> 安装后的二进制会注入公开版本使用的默认服务地址。你也可以通过 `SEACLOUD_BASE_URL`、`SEACLOUD_MODELS_URL`、`SEACLOUD_GENERATION_URL`、`SEACLOUD_SKILLHUB_URL`、`SEACLOUD_FOLKOS_PROXY_BASE_URL` 覆盖这些地址。
 
 如果 `/usr/local/bin` 需要更高权限：
 

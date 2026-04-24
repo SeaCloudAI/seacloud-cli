@@ -13,6 +13,15 @@ func resetTokenStoreForTest(t *testing.T) {
 	store = nil
 }
 
+func setDefaultFolkosProxyBaseURLForTest(t *testing.T, value string) {
+	t.Helper()
+	original := DefaultFolkosProxyBaseURL
+	DefaultFolkosProxyBaseURL = value
+	t.Cleanup(func() {
+		DefaultFolkosProxyBaseURL = original
+	})
+}
+
 func writeConfigFile(t *testing.T, home, content string) {
 	t.Helper()
 	path := filepath.Join(home, ".config", "seacloud", "config.yml")
@@ -80,5 +89,60 @@ func TestLoadManagedExecTokenOverridesStoredCredentials(t *testing.T) {
 	}
 	if stored.AuthToken != "stored-auth" || stored.RefreshToken != "stored-refresh" || stored.APIKey != "stored-key" {
 		t.Fatalf("unexpected stored config: %+v", stored)
+	}
+}
+
+func TestFolkosProxyBaseURLNormalizesGatewayWebsocketURL(t *testing.T) {
+	t.Setenv(EnvFolkosProxyBase, "")
+	setDefaultFolkosProxyBaseURLForTest(t, "")
+	t.Setenv(EnvGatewayURL, "wss://gateway.dev.folkos.ai/ws")
+	t.Setenv(EnvFolkosProxyPath, "")
+
+	got := FolkosProxyBaseURL()
+	want := "https://gateway.dev.folkos.ai/folkos-proxy"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestRewriteURLThroughFolkosProxyRewritesOnlyVtrixEndpoints(t *testing.T) {
+	t.Setenv(EnvFolkosProxyBase, "")
+	setDefaultFolkosProxyBaseURLForTest(t, "")
+	t.Setenv(EnvGatewayURL, "https://gateway.dev.folkos.ai/ws")
+	t.Setenv(EnvFolkosProxyPath, "/cli-proxy/")
+
+	got := RewriteURLThroughFolkosProxy("https://cloud.vtrix.ai/model/v1/generation?debug=1")
+	want := "https://gateway.dev.folkos.ai/cli-proxy/model/v1/generation?debug=1"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+
+	unchanged := RewriteURLThroughFolkosProxy("https://api.openai.com/v1/responses")
+	if unchanged != "https://api.openai.com/v1/responses" {
+		t.Fatalf("expected non-vtrix URL to remain unchanged, got %q", unchanged)
+	}
+}
+
+func TestFolkosProxyBaseURLPrefersExplicitConfig(t *testing.T) {
+	t.Setenv(EnvFolkosProxyBase, "https://folkos-client.dev.folkos.ai/folkos-proxy/")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://ignored.example.com/proxy")
+	t.Setenv(EnvGatewayURL, "https://gateway.dev.folkos.ai/ws")
+
+	got := FolkosProxyBaseURL()
+	want := "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestFolkosProxyBaseURLUsesBuildDefaultBeforeGateway(t *testing.T) {
+	t.Setenv(EnvFolkosProxyBase, "")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://folkos-client.dev.folkos.ai/folkos-proxy/")
+	t.Setenv(EnvGatewayURL, "https://gateway.dev.folkos.ai/ws")
+
+	got := FolkosProxyBaseURL()
+	want := "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
 	}
 }

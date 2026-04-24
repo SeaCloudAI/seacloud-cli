@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
 
 // BaseURL is the generation gateway base URL used by GetTask.
@@ -227,6 +228,7 @@ func (c *Client) GetTask(taskID string) (*TaskStatus, error) {
 		return nil, fmt.Errorf("generation base URL not configured: set SEACLOUD_GENERATION_URL or rebuild with -ldflags")
 	}
 	endpoint := strings.TrimRight(base, "/") + "/model/v1/generation/task/" + taskID
+	endpoint = config.RewriteURLThroughFolkosProxy(endpoint)
 	var status TaskStatus
 	if err := c.do(http.MethodGet, endpoint, nil, &status); err != nil {
 		return nil, err

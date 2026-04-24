@@ -22,8 +22,8 @@ const (
 	RuntimeFolkos      = "folkos"
 )
 
-// DefaultFolkosProxyBaseURL is the fixed Folkos proxy base used in managed runtimes.
-var DefaultFolkosProxyBaseURL = "https://folkos-client.dev.folkos.ai/folkos-proxy"
+// DefaultFolkosProxyBaseURL can be overridden at build time via ldflags.
+var DefaultFolkosProxyBaseURL = ""
 
 // Config holds all credentials. Storage backend is transparent to callers.
 type Config struct {

@@ -95,8 +95,9 @@ func TestLoadManagedExecTokenOverridesStoredCredentials(t *testing.T) {
 func TestFolkosProxyBaseURLUsesFixedURLForManagedToken(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, "")
+	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
 	got := FolkosProxyBaseURL()
-	want := "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -106,8 +107,20 @@ func TestFolkosProxyBaseURLUsesFixedURLForFolkosRuntime(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "")
 	t.Setenv(EnvFolkosToken, "")
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
+	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
 	got := FolkosProxyBaseURL()
-	want := "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
+	if got != want {
+		t.Fatalf("expected %q, got %q", want, got)
+	}
+}
+
+func TestFolkosProxyBaseURLUsesInjectedBuildValue(t *testing.T) {
+	t.Setenv(EnvFolkosExecToken, "exec-token")
+	t.Setenv(EnvSeaCloudRuntime, "")
+	setDefaultFolkosProxyBaseURLForTest(t, "http://sandbox-gateway.dev.folkos.ai/folkos-proxy")
+	got := FolkosProxyBaseURL()
+	want := "http://sandbox-gateway.dev.folkos.ai/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -124,8 +137,9 @@ func TestFolkosProxyBaseURLIsDisabledOutsideFolkos(t *testing.T) {
 
 func TestRewriteURLThroughFolkosProxyRewritesOnlyVtrixEndpointsInFolkosRuntime(t *testing.T) {
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
+	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
 	got := RewriteURLThroughFolkosProxy("https://cloud.vtrix.ai/model/v1/generation?debug=1")
-	want := "https://folkos-client.dev.folkos.ai/folkos-proxy/model/v1/generation?debug=1"
+	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy/model/v1/generation?debug=1"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}

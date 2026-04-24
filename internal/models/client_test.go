@@ -51,7 +51,7 @@ func TestClientOmitsAuthHeaderWithoutManagedToken(t *testing.T) {
 
 func TestListRoutesThroughFolkosProxyForVtrixModelsBaseURL(t *testing.T) {
 	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
-	config.DefaultFolkosProxyBaseURL = "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	config.DefaultFolkosProxyBaseURL = "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
 	t.Cleanup(func() {
 		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
 	})
@@ -81,7 +81,7 @@ func TestListRoutesThroughFolkosProxyForVtrixModelsBaseURL(t *testing.T) {
 
 func TestGetSpecRewritesVtrixEndpointThroughFolkosProxy(t *testing.T) {
 	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
-	config.DefaultFolkosProxyBaseURL = "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	config.DefaultFolkosProxyBaseURL = "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
 	t.Cleanup(func() {
 		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
 	})
@@ -116,7 +116,7 @@ func TestGetSpecRewritesVtrixEndpointThroughFolkosProxy(t *testing.T) {
 		t.Fatalf("GetSpec returned error: %v", err)
 	}
 
-	wantEndpoint := "https://folkos-client.dev.folkos.ai/folkos-proxy/model/v1/generation"
+	wantEndpoint := "http://folkos-gateway.dev.folkos.ai/folkos-proxy/model/v1/generation"
 	if spec.API.Endpoint != wantEndpoint {
 		t.Fatalf("expected rewritten endpoint %q, got %q", wantEndpoint, spec.API.Endpoint)
 	}

@@ -33,6 +33,7 @@ func NewClient() *Client {
 	if env := os.Getenv("SEACLOUD_MODELS_URL"); env != "" {
 		base = env
 	}
+	base = config.RewriteURLThroughFolkosProxy(base)
 	return &Client{
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		baseURL:    base,
@@ -44,7 +45,7 @@ func (c *Client) get(path string, out any) error {
 	if c.baseURL == "" {
 		return fmt.Errorf("models base URL not configured: set SEACLOUD_MODELS_URL or rebuild with -ldflags")
 	}
-	req, err := http.NewRequest(http.MethodGet, c.baseURL+path, nil)
+	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(c.baseURL, "/")+path, nil)
 	if err != nil {
 		return err
 	}

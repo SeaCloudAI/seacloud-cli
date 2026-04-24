@@ -53,7 +53,7 @@ make install
 ```
 
 > Requires Go 1.26+
-> The installed binary uses the default service endpoints for the public CLI. You can override them with `SEACLOUD_BASE_URL`, `SEACLOUD_MODELS_URL`, `SEACLOUD_GENERATION_URL`, `SEACLOUD_SKILLHUB_URL`, and `SEACLOUD_FOLKOS_PROXY_BASE_URL`.
+> The installed binary uses the default public service endpoints. In Folkos-managed runtimes, Vtrix generation requests are automatically rewritten to the fixed Folkos proxy URL.
 
 If `/usr/local/bin` requires elevated permissions:
 

@@ -50,7 +50,12 @@ func TestClientOmitsAuthHeaderWithoutManagedToken(t *testing.T) {
 }
 
 func TestGetSpecRewritesVtrixEndpointThroughFolkosProxy(t *testing.T) {
-	t.Setenv(config.EnvFolkosProxyBase, "https://folkos-client.dev.folkos.ai/folkos-proxy")
+	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
+	config.DefaultFolkosProxyBaseURL = "https://folkos-client.dev.folkos.ai/folkos-proxy"
+	t.Cleanup(func() {
+		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
+	})
+	t.Setenv(config.EnvSeaCloudRuntime, config.RuntimeFolkos)
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

@@ -24,8 +24,12 @@ func TestGetTaskRoutesThroughFolkosProxyForVtrixBaseURL(t *testing.T) {
 	}))
 	defer server.Close()
 
+	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
+	config.DefaultFolkosProxyBaseURL = server.URL + "/folkos-proxy"
+	t.Cleanup(func() {
+		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
+	})
 	t.Setenv("SEACLOUD_GENERATION_URL", "https://cloud.vtrix.ai")
-	t.Setenv(config.EnvFolkosProxyBase, server.URL+"/folkos-proxy")
 	t.Setenv(config.EnvFolkosExecToken, "managed-token")
 	BaseURL = ""
 

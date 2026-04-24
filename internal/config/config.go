@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -20,15 +19,10 @@ const (
 	EnvFolkosExecToken = "FOLKOS_EXEC_TOKEN"
 	EnvFolkosToken     = "FOLKOS_TOKEN"
 	EnvSeaCloudRuntime = "SEACLOUD_RUNTIME"
-	EnvGatewayURL      = "GATEWAY_URL"
-	EnvFolkosProxyPath = "SEACLOUD_FOLKOS_PROXY_PATH"
-	EnvFolkosProxyBase = "SEACLOUD_FOLKOS_PROXY_BASE_URL"
 	RuntimeFolkos      = "folkos"
 )
 
-const defaultFolkosProxyPath = "/folkos-proxy"
-
-// DefaultFolkosProxyBaseURL can be overridden at build time via ldflags.
+// DefaultFolkosProxyBaseURL is the fixed Folkos proxy base used in managed runtimes.
 var DefaultFolkosProxyBaseURL = "https://folkos-client.dev.folkos.ai/folkos-proxy"
 
 // Config holds all credentials. Storage backend is transparent to callers.
@@ -211,60 +205,19 @@ func RuntimeFromEnv() string {
 	return strings.TrimSpace(strings.ToLower(os.Getenv(EnvSeaCloudRuntime)))
 }
 
-func FolkosProxyPath() string {
-	proxyPath := strings.TrimSpace(os.Getenv(EnvFolkosProxyPath))
-	if proxyPath == "" {
-		proxyPath = defaultFolkosProxyPath
+func UseFolkosProxy() bool {
+	if RuntimeFromEnv() == RuntimeFolkos {
+		return true
 	}
-	if !strings.HasPrefix(proxyPath, "/") {
-		proxyPath = "/" + proxyPath
-	}
-	proxyPath = strings.TrimRight(proxyPath, "/")
-	if proxyPath == "" {
-		return defaultFolkosProxyPath
-	}
-	return proxyPath
+	token, _ := managedTokenFromEnv()
+	return token != ""
 }
 
 func FolkosProxyBaseURL() string {
-	if explicit := normalizeAbsoluteURL(os.Getenv(EnvFolkosProxyBase)); explicit != "" {
-		return explicit
-	}
-	if explicit := normalizeAbsoluteURL(DefaultFolkosProxyBaseURL); explicit != "" {
-		return explicit
-	}
-
-	return gatewayDerivedFolkosProxyBaseURL()
-}
-
-func gatewayDerivedFolkosProxyBaseURL() string {
-	raw := strings.TrimSpace(os.Getenv(EnvGatewayURL))
-	if raw == "" {
+	if !UseFolkosProxy() {
 		return ""
 	}
-
-	u, err := url.Parse(raw)
-	if err != nil || u.Host == "" {
-		return ""
-	}
-
-	switch strings.ToLower(u.Scheme) {
-	case "ws":
-		u.Scheme = "http"
-	case "wss":
-		u.Scheme = "https"
-	}
-
-	if u.Scheme == "" {
-		return ""
-	}
-
-	u.RawQuery = ""
-	u.Fragment = ""
-	u.Path = normalizeGatewayPath(u.Path)
-	u.Path = joinURLPath(u.Path, FolkosProxyPath())
-
-	return strings.TrimRight(u.String(), "/")
+	return normalizeAbsoluteURL(DefaultFolkosProxyBaseURL)
 }
 
 func RewriteURLThroughFolkosProxy(raw string) string {
@@ -288,7 +241,7 @@ func RewriteURLThroughFolkosProxy(raw string) string {
 		return raw
 	}
 
-	proxyURL.Path = joinURLPath(proxyURL.Path, target.Path)
+	proxyURL.Path = strings.TrimRight(proxyURL.Path, "/") + "/" + strings.TrimLeft(target.Path, "/")
 	proxyURL.RawQuery = target.RawQuery
 	proxyURL.Fragment = target.Fragment
 	return proxyURL.String()
@@ -328,22 +281,6 @@ func readFileTokens() *fileTokens {
 	return &t
 }
 
-func normalizeGatewayPath(raw string) string {
-	raw = strings.TrimSpace(raw)
-	if raw == "" || raw == "/" {
-		return ""
-	}
-
-	raw = strings.TrimRight(raw, "/")
-	if strings.HasSuffix(raw, "/ws") {
-		raw = strings.TrimSuffix(raw, "/ws")
-	}
-	if raw == "/" {
-		return ""
-	}
-	return raw
-}
-
 func normalizeAbsoluteURL(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -359,29 +296,6 @@ func normalizeAbsoluteURL(raw string) string {
 	u.Fragment = ""
 	u.Path = strings.TrimRight(u.Path, "/")
 	return strings.TrimRight(u.String(), "/")
-}
-
-func joinURLPath(basePath, nextPath string) string {
-	basePath = strings.TrimSpace(basePath)
-	nextPath = strings.TrimSpace(nextPath)
-
-	switch {
-	case basePath == "", basePath == "/":
-		if nextPath == "" {
-			return ""
-		}
-		if strings.HasPrefix(nextPath, "/") {
-			return nextPath
-		}
-		return "/" + nextPath
-	case nextPath == "", nextPath == "/":
-		if strings.HasPrefix(basePath, "/") {
-			return basePath
-		}
-		return "/" + basePath
-	default:
-		return "/" + path.Join(strings.TrimPrefix(basePath, "/"), strings.TrimPrefix(nextPath, "/"))
-	}
 }
 
 func managedTokenFromEnv() (string, string) {

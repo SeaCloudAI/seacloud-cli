@@ -21,7 +21,14 @@ var authLoginCmd = &cobra.Command{
 	Short: "Log in to your SeaCloud account",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
-		if err == nil && cfg.AuthToken != "" {
+		if err != nil {
+			return err
+		}
+		if cfg.Managed {
+			fmt.Printf("Authentication is managed by the %s runtime. Interactive login skipped.\n", managedRuntimeName(cfg))
+			return nil
+		}
+		if cfg.AuthToken != "" {
 			me, err := auth.VerifyToken(cfg.AuthToken)
 			if err == nil {
 				fmt.Printf("Already logged in as %s. Run seacloud auth logout to switch accounts.\n", me.Email)
@@ -60,6 +67,14 @@ var authStatusCmd = &cobra.Command{
 		if err != nil {
 			return fmt.Errorf("failed to read config: %w", err)
 		}
+		if cfg.Managed {
+			fmt.Printf("Authenticated via managed runtime: %s\n", managedRuntimeName(cfg))
+			if cfg.CredentialSource != "" {
+				fmt.Printf("Credential source: %s\n", cfg.CredentialSource)
+			}
+			fmt.Println("Interactive login is disabled in this environment.")
+			return nil
+		}
 
 		if cfg.AuthToken == "" {
 			fmt.Println("Not logged in.")
@@ -90,6 +105,14 @@ var authLogoutCmd = &cobra.Command{
 	Use:   "logout",
 	Short: "Log out of your SeaCloud account",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		if cfg.Managed {
+			fmt.Printf("Authentication is managed by the %s runtime. No local credentials were removed.\n", managedRuntimeName(cfg))
+			return nil
+		}
 		if err := config.Clear(); err != nil {
 			return clierrors.ErrLogout(err)
 		}
@@ -110,7 +133,13 @@ var authSetKeyCmd = &cobra.Command{
 
 		cfg, err := config.Load()
 		if err != nil {
-			cfg = &config.Config{}
+			cfg, err = config.LoadStored()
+			if err != nil {
+				cfg = &config.Config{}
+			}
+		}
+		if cfg.Managed {
+			return clierrors.ErrManagedCredentialsOverride()
 		}
 
 		cfg.APIKey = newKey
@@ -142,6 +171,13 @@ func openBrowser(url string) error {
 	}
 
 	return exec.Command(cmd, args...).Start()
+}
+
+func managedRuntimeName(cfg *config.Config) string {
+	if cfg != nil && cfg.Runtime != "" {
+		return cfg.Runtime
+	}
+	return "managed"
 }
 
 func init() {

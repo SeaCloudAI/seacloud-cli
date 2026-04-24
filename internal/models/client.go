@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
 
 // BaseURL can be overridden at build time via ldflags:
@@ -23,6 +24,7 @@ var BaseURL = ""
 type Client struct {
 	httpClient *http.Client
 	baseURL    string
+	authToken  string
 }
 
 func NewClient() *Client {
@@ -33,6 +35,7 @@ func NewClient() *Client {
 	return &Client{
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		baseURL:    base,
+		authToken:  config.ExecTokenFromEnv(),
 	}
 }
 
@@ -46,6 +49,9 @@ func (c *Client) get(path string, out any) error {
 	}
 	req.Header.Set("User-Agent", buildinfo.UserAgent())
 	req.Header.Set("X-Source", "cli")
+	if c.authToken != "" {
+		req.Header.Set("Authorization", "Bearer "+c.authToken)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

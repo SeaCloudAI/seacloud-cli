@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	keyring "github.com/zalando/go-keyring"
@@ -13,11 +14,20 @@ import (
 
 const keychainService = "seacloud-cli"
 
+const (
+	EnvFolkosExecToken = "FOLKOS_EXEC_TOKEN"
+	EnvSeaCloudRuntime = "SEACLOUD_RUNTIME"
+	RuntimeFolkos      = "folkos"
+)
+
 // Config holds all credentials. Storage backend is transparent to callers.
 type Config struct {
-	AuthToken    string `yaml:"-"`
-	RefreshToken string `yaml:"-"`
-	APIKey       string `yaml:"-"`
+	AuthToken        string `yaml:"-"`
+	RefreshToken     string `yaml:"-"`
+	APIKey           string `yaml:"-"`
+	Managed          bool   `yaml:"-"`
+	Runtime          string `yaml:"-"`
+	CredentialSource string `yaml:"-"`
 }
 
 // fileConfig is the on-disk YAML struct (all tokens excluded).
@@ -153,11 +163,40 @@ func configPath() (string, error) {
 }
 
 func Load() (*Config, error) {
+	cfg, err := LoadStored()
+	if err != nil {
+		return nil, err
+	}
+
+	if token := ExecTokenFromEnv(); token != "" {
+		cfg.AuthToken = token
+		cfg.RefreshToken = ""
+		cfg.APIKey = token
+		cfg.Managed = true
+		cfg.Runtime = RuntimeFromEnv()
+		if cfg.Runtime == "" {
+			cfg.Runtime = RuntimeFolkos
+		}
+		cfg.CredentialSource = EnvFolkosExecToken
+	}
+
+	return cfg, nil
+}
+
+func LoadStored() (*Config, error) {
 	auth, refresh, apiKey, err := newTokenStore().loadTokens()
 	if err != nil {
 		return nil, err
 	}
 	return &Config{AuthToken: auth, RefreshToken: refresh, APIKey: apiKey}, nil
+}
+
+func ExecTokenFromEnv() string {
+	return strings.TrimSpace(os.Getenv(EnvFolkosExecToken))
+}
+
+func RuntimeFromEnv() string {
+	return strings.TrimSpace(strings.ToLower(os.Getenv(EnvSeaCloudRuntime)))
 }
 
 func Save(cfg *Config) error {

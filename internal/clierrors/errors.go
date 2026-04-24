@@ -96,7 +96,14 @@ func ErrFetchModelSpec(id string, err error) error {
 func ErrNoAPIKey() error {
 	return &CLIError{
 		Message: "API key not set",
-		Hint:    "Run: seacloud auth login to obtain an API key",
+		Hint:    "Run: seacloud auth login to obtain an API key, or inject FOLKOS_EXEC_TOKEN in managed runtimes",
+	}
+}
+
+func ErrManagedCredentialsOverride() error {
+	return &CLIError{
+		Message: "credentials are managed by the runtime",
+		Hint:    "Unset FOLKOS_EXEC_TOKEN to manage credentials locally with seacloud auth login or auth set-key",
 	}
 }
 

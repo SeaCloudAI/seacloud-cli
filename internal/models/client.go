@@ -22,6 +22,8 @@ import (
 // Or at runtime via the SEACLOUD_MODELS_URL environment variable.
 var BaseURL = ""
 
+const defaultModelsTimeout = 30 * time.Second
+
 type Client struct {
 	httpClient *http.Client
 	baseURL    string
@@ -35,7 +37,7 @@ func NewClient() *Client {
 	}
 	base = config.RewriteURLThroughFolkosProxy(base)
 	return &Client{
-		httpClient: &http.Client{Timeout: 15 * time.Second},
+		httpClient: &http.Client{Timeout: defaultModelsTimeout},
 		baseURL:    base,
 		authToken:  config.ExecTokenFromEnv(),
 	}

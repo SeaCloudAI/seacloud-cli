@@ -5,9 +5,17 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
+
+func TestNewClientUsesExtendedTimeout(t *testing.T) {
+	client := NewClient()
+	if client.httpClient.Timeout != 30*time.Second {
+		t.Fatalf("expected timeout %s, got %s", 30*time.Second, client.httpClient.Timeout)
+	}
+}
 
 func TestClientAddsManagedAuthHeader(t *testing.T) {
 	t.Setenv(config.EnvFolkosExecToken, "exec-token")

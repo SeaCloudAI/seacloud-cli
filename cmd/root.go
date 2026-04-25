@@ -30,6 +30,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Print what would be executed without making any changes")
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(modelsCmd)
+	rootCmd.AddCommand(imagesCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(taskCmd)
 	rootCmd.AddCommand(skillsCmd)

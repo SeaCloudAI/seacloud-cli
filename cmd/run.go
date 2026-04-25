@@ -9,6 +9,7 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
+	imageapi "github.com/SeaCloudAI/seacloud-cli/internal/images"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/spf13/cobra"
 )
@@ -42,6 +43,33 @@ Exit codes:
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modelID := args[0]
+
+		if imageapi.SupportsSyncModel(modelID) {
+			raw, err := generation.ParseParams(runParams)
+			if err != nil {
+				return err
+			}
+			req, err := imageapi.RequestFromParams(modelID, raw)
+			if err != nil {
+				return err
+			}
+
+			if IsDryRun() {
+				fmt.Fprintf(os.Stderr, "[dry-run] Would execute: POST <proxy>%s\n", imageapi.RouteGenerate)
+				fmt.Fprintf(os.Stderr, "[dry-run] request=%+v\n", req)
+				return nil
+			}
+
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+			if cfg.APIKey == "" {
+				return clierrors.ErrNoAPIKey()
+			}
+			timeout := time.Duration(runTimeout) * time.Second
+			return executeSyncImageRequest(cfg.APIKey, req, runOutput, timeout)
+		}
 
 		// dry-run first — no credentials needed
 		if IsDryRun() {

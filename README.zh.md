@@ -28,6 +28,7 @@
 - **认证登录**：支持浏览器设备码登录，并将凭证安全保存在本地。
 - **模型发现**：列出可用模型，并以可读文本或 JSON 查看完整参数规格。
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
+- **代理生图**：通过 `folkos-proxy` 调用同步生图模型，并可选择输出资产 URL。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、稳定命令结构和可直接复制的示例。
@@ -102,6 +103,20 @@ seacloud models spec kirin_v2_6_i2v --output json
 seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
 seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
 seacloud run kirin_v2_6_i2v --param mode=pro --output url
+seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
+```
+
+### 通过代理生图
+
+```bash
+SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+  --model gpt-image-2 \
+  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
+  --output json
+
+SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
+  --output url
 ```
 
 ### 查询任务状态
@@ -148,6 +163,7 @@ seacloud models spec <model_id> --output json
 seacloud run <model_id> --param key=value
 seacloud run <model_id> --param prompt="hello" --param duration=5
 seacloud run <model_id> --output json
+seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
 ```
 
 嵌套字段支持 dot notation：
@@ -173,6 +189,14 @@ seacloud skills add <slug>
 seacloud skills config --show
 ```
 
+### `seacloud images`
+
+```bash
+seacloud images generate --prompt="一只蓝色猫"
+seacloud images generate --prompt="一只蓝色猫" --output json
+seacloud images generate --prompt="一只蓝色猫" --output url
+```
+
 ### `seacloud version`
 
 ```bash
@@ -183,6 +207,7 @@ seacloud version
 
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
+- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_PROXY_URL` 设置为 `folkos-proxy` 服务根地址。
 - 使用全局 `--dry-run` 在不发请求的前提下检查执行内容。
 
 示例：

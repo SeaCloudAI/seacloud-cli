@@ -28,6 +28,7 @@
 - **Authentication**: Sign in with the browser-based device flow and store credentials locally.
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
+- **Image generation via proxy**: Call sync image-generation models through `folkos-proxy`, with optional asset URL output.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, stable command shapes, and copy-pasteable examples.
@@ -102,6 +103,20 @@ seacloud models spec kirin_v2_6_i2v --output json
 seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
 seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
 seacloud run kirin_v2_6_i2v --param mode=pro --output url
+seacloud run gpt-image-2 --param prompt="a blue cat" --output url
+```
+
+### Generate an image through the proxy
+
+```bash
+SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+  --model gpt-image-2 \
+  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
+  --output json
+
+SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
+  --output url
 ```
 
 ### Check task status
@@ -148,6 +163,7 @@ seacloud models spec <model_id> --output json
 seacloud run <model_id> --param key=value
 seacloud run <model_id> --param prompt="hello" --param duration=5
 seacloud run <model_id> --output json
+seacloud run gpt-image-2 --param prompt="a blue cat" --output url
 ```
 
 Nested fields use dot notation:
@@ -173,6 +189,14 @@ seacloud skills add <slug>
 seacloud skills config --show
 ```
 
+### `seacloud images`
+
+```bash
+seacloud images generate --prompt="a blue cat"
+seacloud images generate --prompt="a blue cat" --output json
+seacloud images generate --prompt="a blue cat" --output url
+```
+
 ### `seacloud version`
 
 ```bash
@@ -183,6 +207,7 @@ seacloud version
 
 - Use `--output json` where supported for machine-readable responses.
 - Use `--output url` on task commands to print only result URLs.
+- Set `SEACLOUD_PROXY_URL` to the root of your `folkos-proxy` service when using `seacloud images generate` or sync image models through `seacloud run`.
 - Use global `--dry-run` to inspect execution without sending requests.
 
 Example:

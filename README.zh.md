@@ -109,12 +109,12 @@ seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
 ### 通过代理生图
 
 ```bash
-SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
   --model gpt-image-2 \
   --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
   --output json
 
-SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
   --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
   --output url
 ```
@@ -207,7 +207,7 @@ seacloud version
 
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
-- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_PROXY_URL` 设置为 `folkos-proxy` 服务根地址。
+- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为 `folkos-proxy` 服务根地址。
 - 使用全局 `--dry-run` 在不发请求的前提下检查执行内容。
 
 示例：

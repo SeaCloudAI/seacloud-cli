@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	EnvProxyURL           = "SEACLOUD_PROXY_URL"
+	EnvProxyURL           = "SEACLOUD_FOLKOS_PROXY_URL"
 	RouteGenerate         = "/seacloud-cli-proxy-api/images/generations"
 	RouteUploadBase64     = "/internal/assets/upload/base64"
 	DefaultModel          = "gpt-image-2"
@@ -31,7 +31,7 @@ const (
 //
 //	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/images.BaseURL=http://127.0.0.1:8090"
 //
-// Or at runtime via the SEACLOUD_PROXY_URL environment variable.
+// Or at runtime via the SEACLOUD_FOLKOS_PROXY_URL environment variable.
 var BaseURL = ""
 
 type Client struct {

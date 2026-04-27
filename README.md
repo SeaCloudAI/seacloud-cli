@@ -109,12 +109,12 @@ seacloud run gpt-image-2 --param prompt="a blue cat" --output url
 ### Generate an image through the proxy
 
 ```bash
-SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
   --model gpt-image-2 \
   --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
   --output json
 
-SEACLOUD_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
+SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
   --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
   --output url
 ```
@@ -207,7 +207,7 @@ seacloud version
 
 - Use `--output json` where supported for machine-readable responses.
 - Use `--output url` on task commands to print only result URLs.
-- Set `SEACLOUD_PROXY_URL` to the root of your `folkos-proxy` service when using `seacloud images generate` or sync image models through `seacloud run`.
+- Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your `folkos-proxy` service when using `seacloud images generate` or sync image models through `seacloud run`.
 - Use global `--dry-run` to inspect execution without sending requests.
 
 Example:

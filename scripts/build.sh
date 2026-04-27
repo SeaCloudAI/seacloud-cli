@@ -13,14 +13,13 @@ SEACLOUD_MODELS_URL="${SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}"
 SEACLOUD_GENERATION_URL="${SEACLOUD_GENERATION_URL:-$SEACLOUD_BASE_URL}"
 SEACLOUD_SKILLHUB_URL="${SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}"
 SEACLOUD_FOLKOS_PROXY_URL="${SEACLOUD_FOLKOS_PROXY_URL:-http://folkos-gateway.dev.folkos.ai/folkos-proxy}"
-SEACLOUD_PROXY_URL="${SEACLOUD_PROXY_URL:-}"
 
 LDFLAGS="-s -w \
   -X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version=${VERSION} \
   -X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=${SEACLOUD_BASE_URL} \
   -X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL=${SEACLOUD_MODELS_URL} \
   -X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL=${SEACLOUD_GENERATION_URL} \
-  -X github.com/SeaCloudAI/seacloud-cli/internal/images.BaseURL=${SEACLOUD_PROXY_URL} \
+  -X github.com/SeaCloudAI/seacloud-cli/internal/images.BaseURL=${SEACLOUD_FOLKOS_PROXY_URL} \
   -X github.com/SeaCloudAI/seacloud-cli/internal/skillhub.BaseURL=${SEACLOUD_SKILLHUB_URL} \
   -X github.com/SeaCloudAI/seacloud-cli/internal/config.DefaultFolkosProxyBaseURL=${SEACLOUD_FOLKOS_PROXY_URL}"
 
@@ -39,7 +38,6 @@ echo "Building $APP $VERSION (prod)"
 echo "  BaseURL:          $SEACLOUD_BASE_URL"
 echo "  ModelsBaseURL:    $SEACLOUD_MODELS_URL"
 echo "  GenerationBaseURL: $SEACLOUD_GENERATION_URL"
-echo "  ProxyBaseURL:     $SEACLOUD_PROXY_URL"
 echo "  SkillhubBaseURL:  $SEACLOUD_SKILLHUB_URL"
 echo "  FolkosProxyBaseURL: $SEACLOUD_FOLKOS_PROXY_URL"
 echo ""

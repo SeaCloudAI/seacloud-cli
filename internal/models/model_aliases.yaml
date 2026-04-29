@@ -1,0 +1,10 @@
+exact:
+  kling_image_o1: kirin_image_omni
+
+prefixes:
+  - display_prefix: kling_
+    backend_prefix: kirin_
+  - display_prefix: seedance_
+    backend_prefix: spark_dance_v
+  - display_prefix: seedream_
+    backend_prefix: spark_dream_

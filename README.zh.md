@@ -93,18 +93,21 @@ seacloud auth status
 ```bash
 seacloud models list
 seacloud models list --type video
-seacloud models spec kirin_v2_6_i2v
-seacloud models spec kirin_v2_6_i2v --output json
+seacloud models spec kling_v2_6_i2v
+seacloud models spec seedance_2_0 --output json
 ```
 
 ### 执行任务
 
 ```bash
-seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
-seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
-seacloud run kirin_v2_6_i2v --param mode=pro --output url
+seacloud run kling_v2_6_i2v --param image=https://example.com/cat.jpg
+seacloud run seedance_2_0 --param prompt="a cat running" --param duration=5
+seacloud run kling_v2_6_i2v --param mode=pro --output url
 seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
 ```
+
+SeaCloud CLI 现在支持直接使用 `kling_*`、`seedance_*`、`seedream_*` 这类对外模型 ID，
+提交前会自动映射到当前后端使用的原始模型 ID。
 
 ### 通过代理生图
 
@@ -213,7 +216,7 @@ seacloud version
 示例：
 
 ```bash
-seacloud --dry-run run kirin_v2_6_i2v --param prompt=test
+seacloud --dry-run run seedance_2_0 --param prompt=test
 ```
 
 ## 发布说明

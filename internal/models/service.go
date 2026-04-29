@@ -7,17 +7,31 @@ func List(params ListParams) (*ModelsListResponse, error) {
 	if err != nil {
 		return nil, clierrors.ErrFetchModels(err)
 	}
+	for i := range result.Models {
+		result.Models[i].ID = DisplayModelID(result.Models[i].ID)
+	}
 	return result, nil
 }
 
 func GetSpec(modelID string) (*ModelSpec, error) {
-	spec, err := NewClient().GetSpec(modelID)
+	resolvedModelID := ResolveModelID(modelID)
+
+	spec, err := NewClient().GetSpec(resolvedModelID)
 	if err != nil {
 		if isNotFound(err) {
 			return nil, clierrors.ErrModelNotFound(modelID)
 		}
 		return nil, clierrors.ErrFetchModelSpec(modelID, err)
 	}
+
+	backendModelID := spec.ModelID
+	if backendModelID == "" {
+		backendModelID = resolvedModelID
+	}
+	displayModelID := PreferredModelID(modelID, backendModelID)
+	spec.ModelID = displayModelID
+	spec.AgentPrompt = RewriteModelIDText(spec.AgentPrompt, backendModelID, displayModelID)
+
 	return spec, nil
 }
 

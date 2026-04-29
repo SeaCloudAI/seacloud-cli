@@ -112,8 +112,8 @@ Use --output json to get the raw structured spec including:
   api          Endpoint, method, headers template
   parameters   Full parameter definitions with types, constraints, children
   agent_prompt Preformatted text ready to be injected into an LLM context`,
-	Example: `  seacloud models spec kirin_v2_6_i2v
-  seacloud models spec kirin_v2_6_i2v --output json`,
+	Example: `  seacloud models spec kling_v2_6_i2v
+  seacloud models spec seedance_2_0 --output json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modelID := args[0]

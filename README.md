@@ -93,18 +93,21 @@ seacloud auth status
 ```bash
 seacloud models list
 seacloud models list --type video
-seacloud models spec kirin_v2_6_i2v
-seacloud models spec kirin_v2_6_i2v --output json
+seacloud models spec kling_v2_6_i2v
+seacloud models spec seedance_2_0 --output json
 ```
 
 ### Run a task
 
 ```bash
-seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
-seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
-seacloud run kirin_v2_6_i2v --param mode=pro --output url
+seacloud run kling_v2_6_i2v --param image=https://example.com/cat.jpg
+seacloud run seedance_2_0 --param prompt="a cat running" --param duration=5
+seacloud run kling_v2_6_i2v --param mode=pro --output url
 seacloud run gpt-image-2 --param prompt="a blue cat" --output url
 ```
+
+SeaCloud CLI accepts user-facing model IDs such as `kling_*`, `seedance_*`, and `seedream_*`.
+They are resolved to the current backend IDs automatically before submission.
 
 ### Generate an image through the proxy
 
@@ -213,7 +216,7 @@ seacloud version
 Example:
 
 ```bash
-seacloud --dry-run run kirin_v2_6_i2v --param prompt=test
+seacloud --dry-run run seedance_2_0 --param prompt=test
 ```
 
 ## Release

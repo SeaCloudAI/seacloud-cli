@@ -36,15 +36,16 @@ are validated before the request is sent.
 Exit codes:
   0   task succeeded
   1   error (validation, network, API, timeout)`,
-	Example: `  seacloud run kirin_v2_6_i2v --param image=https://example.com/cat.jpg
-  seacloud run kirin_v2_6_i2v --param prompt="a cat running" --param duration=5
-  seacloud run kirin_v2_6_i2v --param mode=pro --output url
-  seacloud run kirin_v2_6_i2v --param mode=pro --output json`,
+	Example: `  seacloud run kling_v2_6_i2v --param image=https://example.com/cat.jpg
+  seacloud run seedance_2_0 --param prompt="a cat running" --param duration=5
+  seacloud run kling_v2_6_i2v --param mode=pro --output url
+  seacloud run seedance_2_0 --param mode=pro --output json`,
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		modelID := args[0]
+		resolvedModelID := models.ResolveModelID(modelID)
 
-		if imageapi.SupportsSyncModel(modelID) {
+		if imageapi.SupportsSyncModel(resolvedModelID) {
 			raw, err := generation.ParseParams(runParams)
 			if err != nil {
 				return err
@@ -106,7 +107,7 @@ Exit codes:
 		}
 
 		// Submit generation request
-		resp, err := generation.Submit(cfg.APIKey, spec.API.Endpoint, modelID, params)
+		resp, err := generation.Submit(cfg.APIKey, spec.API.Endpoint, resolvedModelID, params)
 		if err != nil {
 			return clierrors.ErrSubmitFailed(err)
 		}
@@ -143,6 +144,10 @@ Exit codes:
 				errMsg = task.Error.Message
 			}
 			return clierrors.ErrTaskFailed(resp.ID, errMsg)
+		}
+
+		if task.Model == resolvedModelID {
+			task.Model = modelID
 		}
 
 		if runOutput == "url" {

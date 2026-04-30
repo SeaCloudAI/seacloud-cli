@@ -237,13 +237,9 @@ func resolveBaseURL() string {
 	if env := normalizeBaseURL(os.Getenv(EnvProxyURL)); env != "" {
 		return env
 	}
-	if build := normalizeBaseURL(BaseURL); build != "" {
-		return build
-	}
-
 	folkosBase := strings.TrimRight(strings.TrimSpace(config.FolkosProxyBaseURL()), "/")
 	if folkosBase == "" {
-		return ""
+		return normalizeBaseURL(BaseURL)
 	}
 	return strings.TrimSuffix(folkosBase, "/folkos-proxy")
 }

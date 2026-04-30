@@ -19,6 +19,7 @@ const (
 	EnvFolkosExecToken = "FOLKOS_EXEC_TOKEN"
 	EnvFolkosToken     = "FOLKOS_TOKEN"
 	EnvSeaCloudRuntime = "SEACLOUD_RUNTIME"
+	EnvGatewayURL      = "GATEWAY_URL"
 	RuntimeFolkos      = "folkos"
 )
 
@@ -217,6 +218,9 @@ func FolkosProxyBaseURL() string {
 	if !UseFolkosProxy() {
 		return ""
 	}
+	if gatewayURL := folkosProxyBaseURLFromGatewayEnv(); gatewayURL != "" {
+		return gatewayURL
+	}
 	return normalizeAbsoluteURL(DefaultFolkosProxyBaseURL)
 }
 
@@ -295,6 +299,29 @@ func normalizeAbsoluteURL(raw string) string {
 	u.RawQuery = ""
 	u.Fragment = ""
 	u.Path = strings.TrimRight(u.Path, "/")
+	return strings.TrimRight(u.String(), "/")
+}
+
+func folkosProxyBaseURLFromGatewayEnv() string {
+	gatewayURL := normalizeAbsoluteURL(os.Getenv(EnvGatewayURL))
+	if gatewayURL == "" {
+		return ""
+	}
+
+	u, err := url.Parse(gatewayURL)
+	if err != nil || u.Scheme == "" || u.Host == "" {
+		return ""
+	}
+
+	path := strings.TrimRight(u.Path, "/")
+	if path == "" {
+		u.Path = "/folkos-proxy"
+	} else if !strings.HasSuffix(path, "/folkos-proxy") {
+		u.Path = path + "/folkos-proxy"
+	} else {
+		u.Path = path
+	}
+
 	return strings.TrimRight(u.String(), "/")
 }
 

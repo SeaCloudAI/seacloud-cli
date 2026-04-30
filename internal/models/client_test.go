@@ -183,3 +183,52 @@ func TestGetSpecRoutesThroughFolkosProxyForVtrixModelsBaseURL(t *testing.T) {
 		t.Fatalf("expected model id %q, got %q", "gpt_image_1", spec.ModelID)
 	}
 }
+
+func TestGetSpecPrefersGatewayURLOverBuildProxyBase(t *testing.T) {
+	t.Setenv(config.EnvFolkosExecToken, "exec-token")
+	t.Setenv(config.EnvSeaCloudRuntime, config.RuntimeFolkos)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Path; got != "/folkos-proxy/api/v1/skill/models/gpt_image_1/spec" {
+			t.Fatalf("expected proxied models spec path, got %q", got)
+		}
+		if got := r.Header.Get("Authorization"); got != "Bearer exec-token" {
+			t.Fatalf("expected Authorization header to be set, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"status":{"code":200,"message":"ok"},
+			"data":{
+				"model_id":"gpt_image_1",
+				"name":"GPT Image 1",
+				"vendor":"openai",
+				"type":"image",
+				"api":{
+					"endpoint":"https://cloud.vtrix.ai/model/v1/generation",
+					"method":"POST",
+					"headers":{"Authorization":"Bearer {{API_KEY}}"}
+				},
+				"parameters":[],
+				"agent_prompt":"POST https://cloud.vtrix.ai/model/v1/generation"
+			}
+		}`))
+	}))
+	defer server.Close()
+
+	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
+	config.DefaultFolkosProxyBaseURL = "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
+	t.Cleanup(func() {
+		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
+	})
+	t.Setenv(config.EnvGatewayURL, server.URL)
+	t.Setenv("SEACLOUD_MODELS_URL", "https://cloud-model-spec.vtrix.ai")
+	BaseURL = ""
+
+	spec, err := NewClient().GetSpec("gpt_image_1")
+	if err != nil {
+		t.Fatalf("GetSpec returned error: %v", err)
+	}
+	if spec.ModelID != "gpt_image_1" {
+		t.Fatalf("expected model id %q, got %q", "gpt_image_1", spec.ModelID)
+	}
+}

@@ -6,6 +6,8 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
 
 func TestSupportsSyncModel(t *testing.T) {
@@ -111,5 +113,41 @@ func TestUploadResponseImagesUsesAssetsRoute(t *testing.T) {
 	}
 	if len(urls) != 1 || urls[0] != "https://assets-dev.folkos.ai/image/20260425-deadbeef.png" {
 		t.Fatalf("unexpected upload urls: %+v", urls)
+	}
+}
+
+func TestGeneratePrefersGatewayURLOutsideBuildProxyDefault(t *testing.T) {
+	var gotPath string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"data":[{"b64_json":"abc"}],"output_format":"png","size":"1024x1024"}`))
+	}))
+	defer server.Close()
+
+	originalBuildBaseURL := BaseURL
+	BaseURL = "http://folkos-gateway.dev.folkos.ai"
+	t.Cleanup(func() {
+		BaseURL = originalBuildBaseURL
+	})
+
+	t.Setenv(EnvProxyURL, "")
+	t.Setenv(config.EnvGatewayURL, server.URL)
+	t.Setenv(config.EnvFolkosExecToken, "managed-token")
+	t.Setenv(config.EnvSeaCloudRuntime, config.RuntimeFolkos)
+
+	_, err := NewClient("cli-key").Generate(GenerateRequest{
+		Model:          "gpt-image-2",
+		Prompt:         "blue cat",
+		Size:           "1024x1024",
+		ResponseFormat: "b64_json",
+	})
+	if err != nil {
+		t.Fatalf("Generate returned error: %v", err)
+	}
+
+	if gotPath != RouteGenerate {
+		t.Fatalf("expected path %q, got %q", RouteGenerate, gotPath)
 	}
 }

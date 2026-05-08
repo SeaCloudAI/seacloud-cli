@@ -19,7 +19,7 @@
   <p>
     <a href="./README.zh.md">中文文档</a>
     ·
-    <a href="https://vtrix.ai/">Official Website</a>
+    <a href="https://cloud.seaart.ai/">Official Website</a>
   </p>
 </div>
 

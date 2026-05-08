@@ -16,7 +16,7 @@ import (
 
 // BaseURL can be overridden at build time via ldflags:
 //
-//	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=https://vtrix.ai"
+//	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=https://cloud.seaart.ai"
 //
 // Or at runtime via the SEACLOUD_BASE_URL environment variable.
 var BaseURL = ""

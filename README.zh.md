@@ -19,7 +19,7 @@
   <p>
     <a href="./README.md">English</a>
     ·
-    <a href="https://vtrix.ai/">SeaCloud官网</a>
+    <a href="https://cloud.seaart.ai/">SeaCloud官网</a>
   </p>
 </div>
 

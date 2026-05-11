@@ -96,9 +96,9 @@ func TestFolkosProxyBaseURLUsesFixedURLForManagedToken(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, "")
 	t.Setenv(EnvGatewayURL, "")
-	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://gateway.example.com/folkos-proxy")
 	got := FolkosProxyBaseURL()
-	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
+	want := "https://gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -109,9 +109,9 @@ func TestFolkosProxyBaseURLUsesFixedURLForFolkosRuntime(t *testing.T) {
 	t.Setenv(EnvFolkosToken, "")
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
 	t.Setenv(EnvGatewayURL, "")
-	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://gateway.example.com/folkos-proxy")
 	got := FolkosProxyBaseURL()
-	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
+	want := "https://gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -121,9 +121,9 @@ func TestFolkosProxyBaseURLUsesInjectedBuildValue(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, "")
 	t.Setenv(EnvGatewayURL, "")
-	setDefaultFolkosProxyBaseURLForTest(t, "http://sandbox-gateway.dev.folkos.ai/folkos-proxy")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://sandbox-gateway.example.com/folkos-proxy")
 	got := FolkosProxyBaseURL()
-	want := "http://sandbox-gateway.dev.folkos.ai/folkos-proxy"
+	want := "https://sandbox-gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -132,11 +132,11 @@ func TestFolkosProxyBaseURLUsesInjectedBuildValue(t *testing.T) {
 func TestFolkosProxyBaseURLPrefersGatewayURLInManagedRuntime(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
-	t.Setenv(EnvGatewayURL, "https://folkos-gateway.folkos.ai")
-	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
+	t.Setenv(EnvGatewayURL, "https://gateway.example.com")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://gateway.example.com/folkos-proxy")
 
 	got := FolkosProxyBaseURL()
-	want := "https://folkos-gateway.folkos.ai/folkos-proxy"
+	want := "https://gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -145,11 +145,11 @@ func TestFolkosProxyBaseURLPrefersGatewayURLInManagedRuntime(t *testing.T) {
 func TestFolkosProxyBaseURLAcceptsGatewayURLWithTrailingSlash(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
-	t.Setenv(EnvGatewayURL, "https://folkos-gateway.folkos.ai/")
+	t.Setenv(EnvGatewayURL, "https://gateway.example.com/")
 	setDefaultFolkosProxyBaseURLForTest(t, "")
 
 	got := FolkosProxyBaseURL()
-	want := "https://folkos-gateway.folkos.ai/folkos-proxy"
+	want := "https://gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -158,11 +158,11 @@ func TestFolkosProxyBaseURLAcceptsGatewayURLWithTrailingSlash(t *testing.T) {
 func TestFolkosProxyBaseURLKeepsExistingProxyPathFromGatewayURL(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "exec-token")
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
-	t.Setenv(EnvGatewayURL, "https://folkos-gateway.folkos.ai/folkos-proxy")
+	t.Setenv(EnvGatewayURL, "https://gateway.example.com/folkos-proxy")
 	setDefaultFolkosProxyBaseURLForTest(t, "")
 
 	got := FolkosProxyBaseURL()
-	want := "https://folkos-gateway.folkos.ai/folkos-proxy"
+	want := "https://gateway.example.com/folkos-proxy"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}
@@ -172,7 +172,7 @@ func TestFolkosProxyBaseURLIsDisabledOutsideFolkos(t *testing.T) {
 	t.Setenv(EnvFolkosExecToken, "")
 	t.Setenv(EnvFolkosToken, "")
 	t.Setenv(EnvSeaCloudRuntime, "")
-	t.Setenv(EnvGatewayURL, "https://folkos-gateway.folkos.ai")
+	t.Setenv(EnvGatewayURL, "https://gateway.example.com")
 	if got := FolkosProxyBaseURL(); got != "" {
 		t.Fatalf("expected empty proxy base URL outside folkos runtime, got %q", got)
 	}
@@ -181,9 +181,9 @@ func TestFolkosProxyBaseURLIsDisabledOutsideFolkos(t *testing.T) {
 func TestRewriteURLThroughFolkosProxyRewritesOnlyVtrixEndpointsInFolkosRuntime(t *testing.T) {
 	t.Setenv(EnvSeaCloudRuntime, RuntimeFolkos)
 	t.Setenv(EnvGatewayURL, "")
-	setDefaultFolkosProxyBaseURLForTest(t, "http://folkos-gateway.dev.folkos.ai/folkos-proxy")
+	setDefaultFolkosProxyBaseURLForTest(t, "https://gateway.example.com/folkos-proxy")
 	got := RewriteURLThroughFolkosProxy("https://cloud.vtrix.ai/model/v1/generation?debug=1")
-	want := "http://folkos-gateway.dev.folkos.ai/folkos-proxy/model/v1/generation?debug=1"
+	want := "https://gateway.example.com/folkos-proxy/model/v1/generation?debug=1"
 	if got != want {
 		t.Fatalf("expected %q, got %q", want, got)
 	}

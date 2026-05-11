@@ -85,7 +85,7 @@ func TestUploadResponseImagesUsesAssetsRoute(t *testing.T) {
 			t.Fatalf("decode request: %v", err)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"cdn_url":"https://assets-dev.folkos.ai/image/20260425-deadbeef.png"}`))
+		_, _ = w.Write([]byte(`{"cdn_url":"https://assets.example.com/image/20260425-deadbeef.png"}`))
 	}))
 	defer server.Close()
 
@@ -111,7 +111,7 @@ func TestUploadResponseImagesUsesAssetsRoute(t *testing.T) {
 	if gotBody.MIMETypeHint != "image/png" {
 		t.Fatalf("expected MIME type hint %q, got %q", "image/png", gotBody.MIMETypeHint)
 	}
-	if len(urls) != 1 || urls[0] != "https://assets-dev.folkos.ai/image/20260425-deadbeef.png" {
+	if len(urls) != 1 || urls[0] != "https://assets.example.com/image/20260425-deadbeef.png" {
 		t.Fatalf("unexpected upload urls: %+v", urls)
 	}
 }
@@ -127,7 +127,7 @@ func TestGeneratePrefersGatewayURLOutsideBuildProxyDefault(t *testing.T) {
 	defer server.Close()
 
 	originalBuildBaseURL := BaseURL
-	BaseURL = "http://folkos-gateway.dev.folkos.ai"
+	BaseURL = "https://gateway.example.com"
 	t.Cleanup(func() {
 		BaseURL = originalBuildBaseURL
 	})

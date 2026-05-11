@@ -28,7 +28,7 @@
 - **认证登录**：支持浏览器设备码登录，并将凭证安全保存在本地。
 - **模型发现**：列出可用模型，并以可读文本或 JSON 查看完整参数规格。
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
-- **代理生图**：通过 `folkos-proxy` 调用同步生图模型，并可选择输出资产 URL。
+- **代理生图**：通过兼容的代理服务调用同步生图模型，并可选择输出资产 URL。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、稳定命令结构和可直接复制的示例。
@@ -54,7 +54,7 @@ make install
 ```
 
 > 需要 Go 1.26+
-> 安装后的二进制会注入公开版本使用的默认服务地址。在 Folkos 托管运行时里，Vtrix 生成请求会自动改写到固定的 Folkos 代理地址。
+> 安装后的二进制会注入公开版本使用的默认服务地址。在会注入 `GATEWAY_URL` 和托管 token 的运行时里，Vtrix 生成请求可以自动改写到运行时代理。
 
 如果 `/usr/local/bin` 需要更高权限：
 
@@ -210,7 +210,7 @@ seacloud version
 
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
-- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为 `folkos-proxy` 服务根地址。
+- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为你的代理服务根地址。
 - 使用全局 `--dry-run` 在不发请求的前提下检查执行内容。
 
 示例：

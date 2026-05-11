@@ -28,7 +28,7 @@
 - **Authentication**: Sign in with the browser-based device flow and store credentials locally.
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
-- **Image generation via proxy**: Call sync image-generation models through `folkos-proxy`, with optional asset URL output.
+- **Proxy-based image generation**: Call sync image-generation models through a compatible proxy service, with optional asset URL output.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, stable command shapes, and copy-pasteable examples.
@@ -54,7 +54,7 @@ make install
 ```
 
 > Requires Go 1.26+
-> The installed binary uses the default public service endpoints. In Folkos-managed runtimes, Vtrix generation requests are automatically rewritten to the fixed Folkos proxy URL.
+> The installed binary uses the default public service endpoints. In managed runtimes that inject `GATEWAY_URL` plus a managed token, Vtrix generation requests can be rewritten through the runtime proxy automatically.
 
 If `/usr/local/bin` requires elevated permissions:
 
@@ -210,7 +210,7 @@ seacloud version
 
 - Use `--output json` where supported for machine-readable responses.
 - Use `--output url` on task commands to print only result URLs.
-- Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your `folkos-proxy` service when using `seacloud images generate` or sync image models through `seacloud run`.
+- Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your proxy service when using `seacloud images generate` or sync image models through `seacloud run`.
 - Use global `--dry-run` to inspect execution without sending requests.
 
 Example:

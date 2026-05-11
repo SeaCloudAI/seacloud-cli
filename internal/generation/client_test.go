@@ -56,7 +56,7 @@ func TestGetTaskPrefersGatewayURLOverBuildProxyBase(t *testing.T) {
 	defer server.Close()
 
 	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
-	config.DefaultFolkosProxyBaseURL = "http://folkos-gateway.dev.folkos.ai/folkos-proxy"
+	config.DefaultFolkosProxyBaseURL = "https://gateway.example.com/folkos-proxy"
 	t.Cleanup(func() {
 		config.DefaultFolkosProxyBaseURL = originalProxyBaseURL
 	})

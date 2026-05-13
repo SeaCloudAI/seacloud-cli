@@ -19,6 +19,15 @@ func TestGetTaskRoutesThroughFolkosProxyForVtrixBaseURL(t *testing.T) {
 		if got := r.Header.Get("X-Folkos-Exec-Token"); got != "" {
 			t.Fatalf("expected no legacy X-Folkos-Exec-Token header, got %q", got)
 		}
+		if got := r.Header.Get("X-Folkos-Token-Kind"); got != "execution" {
+			t.Fatalf("expected execution token kind header, got %q", got)
+		}
+		if got := r.Header.Get("X-Folkos-Turn-ID"); got != "turn-1" {
+			t.Fatalf("expected turn header, got %q", got)
+		}
+		if got := r.Header.Get("X-Folkos-Message-ID"); got != "msg-1" {
+			t.Fatalf("expected message header, got %q", got)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"id":"task-123","status":"completed","model":"gpt_image_1","output":[],"created_at":1710000000}`))
 	}))
@@ -31,6 +40,8 @@ func TestGetTaskRoutesThroughFolkosProxyForVtrixBaseURL(t *testing.T) {
 	})
 	t.Setenv("SEACLOUD_GENERATION_URL", "https://cloud.vtrix.ai")
 	t.Setenv(config.EnvFolkosExecToken, "managed-token")
+	t.Setenv(config.EnvFolkosTurnID, "turn-1")
+	t.Setenv(config.EnvFolkosMessageID, "msg-1")
 	BaseURL = ""
 
 	task, err := NewClient("managed-token").GetTask("task-123")

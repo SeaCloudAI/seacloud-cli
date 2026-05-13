@@ -16,11 +16,18 @@ import (
 const keychainService = "seacloud-cli"
 
 const (
-	EnvFolkosExecToken = "FOLKOS_EXEC_TOKEN"
-	EnvFolkosToken     = "FOLKOS_TOKEN"
-	EnvSeaCloudRuntime = "SEACLOUD_RUNTIME"
-	EnvGatewayURL      = "GATEWAY_URL"
-	RuntimeFolkos      = "folkos"
+	EnvFolkosExecToken   = "FOLKOS_EXEC_TOKEN"
+	EnvFolkosToken       = "FOLKOS_TOKEN"
+	EnvFolkosSessionID   = "FOLKOS_SESSION_ID"
+	EnvFolkosTurnID      = "FOLKOS_TURN_ID"
+	EnvFolkosMessageID   = "FOLKOS_MESSAGE_ID"
+	EnvFolkosAgentUUID   = "FOLKOS_AGENT_UUID"
+	EnvFolkosWorkspaceID = "FOLKOS_WORKSPACE_ID"
+	EnvFolkosAgentTempID = "FOLKOS_AGENT_TEMP_ID"
+	EnvFolkosSandboxID   = "FOLKOS_SANDBOX_ID"
+	EnvSeaCloudRuntime   = "SEACLOUD_RUNTIME"
+	EnvGatewayURL        = "GATEWAY_URL"
+	RuntimeFolkos        = "folkos"
 )
 
 // DefaultFolkosProxyBaseURL can be overridden at build time via ldflags.
@@ -200,6 +207,29 @@ func LoadStored() (*Config, error) {
 func ExecTokenFromEnv() string {
 	token, _ := managedTokenFromEnv()
 	return token
+}
+
+func FolkosRuntimeHeaders() map[string]string {
+	headers := make(map[string]string)
+	if strings.TrimSpace(os.Getenv(EnvFolkosExecToken)) != "" {
+		headers["X-Folkos-Token-Kind"] = "execution"
+	}
+	add := func(header, env string) {
+		if value := strings.TrimSpace(os.Getenv(env)); value != "" {
+			headers[header] = value
+		}
+	}
+	add("X-Folkos-Session-ID", EnvFolkosSessionID)
+	add("X-Folkos-Turn-ID", EnvFolkosTurnID)
+	add("X-Folkos-Message-ID", EnvFolkosMessageID)
+	add("X-Folkos-Agent-UUID", EnvFolkosAgentUUID)
+	add("X-Folkos-Workspace-ID", EnvFolkosWorkspaceID)
+	add("X-Folkos-Agent-Temp-ID", EnvFolkosAgentTempID)
+	add("X-Folkos-Sandbox-ID", EnvFolkosSandboxID)
+	if len(headers) == 0 {
+		return nil
+	}
+	return headers
 }
 
 func RuntimeFromEnv() string {

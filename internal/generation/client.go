@@ -52,6 +52,9 @@ func (c *Client) do(method, endpoint string, body []byte, out any) error {
 	req.Header.Set("Authorization", "Bearer "+c.apiKey)
 	req.Header.Set("User-Agent", buildinfo.UserAgent())
 	req.Header.Set("X-Source", "cli")
+	for key, value := range config.FolkosRuntimeHeaders() {
+		req.Header.Set(key, value)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

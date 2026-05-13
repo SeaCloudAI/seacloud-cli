@@ -35,11 +35,15 @@ func TestRequestFromValuesDefaultsResponseFormat(t *testing.T) {
 func TestGeneratePostsToProxyRoute(t *testing.T) {
 	var gotAuth string
 	var gotPath string
+	var gotTurnID string
+	var gotMessageID string
 	var gotBody GenerateRequest
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotAuth = r.Header.Get("Authorization")
 		gotPath = r.URL.Path
+		gotTurnID = r.Header.Get("X-Folkos-Turn-ID")
+		gotMessageID = r.Header.Get("X-Folkos-Message-ID")
 		if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
 			t.Fatalf("decode request: %v", err)
 		}
@@ -49,6 +53,8 @@ func TestGeneratePostsToProxyRoute(t *testing.T) {
 	defer server.Close()
 
 	t.Setenv(EnvProxyURL, server.URL)
+	t.Setenv(config.EnvFolkosTurnID, "turn-1")
+	t.Setenv(config.EnvFolkosMessageID, "msg-1")
 	BaseURL = ""
 
 	resp, err := NewClient("cli-key").Generate(GenerateRequest{
@@ -66,6 +72,9 @@ func TestGeneratePostsToProxyRoute(t *testing.T) {
 	}
 	if gotAuth != "Bearer cli-key" {
 		t.Fatalf("expected Authorization header to use CLI key, got %q", gotAuth)
+	}
+	if gotTurnID != "turn-1" || gotMessageID != "msg-1" {
+		t.Fatalf("expected correlation headers, got turn=%q message=%q", gotTurnID, gotMessageID)
 	}
 	if gotBody.Model != "gpt-image-2" || gotBody.Prompt != "blue cat" {
 		t.Fatalf("unexpected request body: %+v", gotBody)

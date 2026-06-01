@@ -27,6 +27,11 @@ jobs:
         with:
           node-version: "20"
 
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
       - name: Extract tag metadata
         id: meta
         run: |
@@ -35,38 +40,90 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
-      - name: Validate package.json version matches tag
+      - name: Validate package.json and Cargo.toml versions match tag
         run: |
           PKG_VERSION="$(node -p "require('./package.json').version")"
+          CARGO_VERSION="$(cargo metadata --no-deps --format-version=1 | node -e "let d=''; process.stdin.on('data', c => d += c); process.stdin.on('end', () => console.log(JSON.parse(d).packages[0].version));")"
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           if [ "$PKG_VERSION" != "$TAG_VERSION" ]; then
             echo "package.json version mismatch: package.json=${PKG_VERSION}, tag=${TAG_VERSION}"
             exit 1
           fi
+          if [ "$CARGO_VERSION" != "$TAG_VERSION" ]; then
+            echo "Cargo.toml version mismatch: Cargo.toml=${CARGO_VERSION}, tag=${TAG_VERSION}"
+            exit 1
+          fi
 
-  release:
+      - name: Run Rust checks
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets -- -D warnings
+          cargo test
+
+      - name: Install coverage tool
+        run: cargo install cargo-llvm-cov --locked
+
+      - name: Run coverage
+        run: cargo llvm-cov --summary-only --fail-under-lines 85
+
+  build-artifacts:
     needs: validate
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13
+            target_entry: darwin/amd64/x86_64-apple-darwin
+            artifact_name: seacloud_darwin_amd64
+            apt_packages: ""
+            linker_env: ""
+          - runner: macos-14
+            target_entry: darwin/arm64/aarch64-apple-darwin
+            artifact_name: seacloud_darwin_arm64
+            apt_packages: ""
+            linker_env: ""
+          - runner: ubuntu-latest
+            target_entry: linux/amd64/x86_64-unknown-linux-gnu
+            artifact_name: seacloud_linux_amd64
+            apt_packages: ""
+            linker_env: ""
+          - runner: ubuntu-latest
+            target_entry: linux/arm64/aarch64-unknown-linux-gnu
+            artifact_name: seacloud_linux_arm64
+            apt_packages: gcc-aarch64-linux-gnu
+            linker_env: CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+          - runner: ubuntu-latest
+            target_entry: windows/amd64/x86_64-pc-windows-gnu
+            artifact_name: seacloud_windows_amd64
+            apt_packages: gcc-mingw-w64-x86-64 zip
+            linker_env: CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc
+    runs-on: ${{ matrix.runner }}
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      VERSION: ${{ needs.validate.outputs.version }}
+      INPUT_SEACLOUD_BASE_URL: ${{ vars.SEACLOUD_BASE_URL }}
+      INPUT_SEACLOUD_MODELS_URL: ${{ vars.SEACLOUD_MODELS_URL }}
+      INPUT_SEACLOUD_GENERATION_URL: ${{ vars.SEACLOUD_GENERATION_URL }}
+      INPUT_SEACLOUD_SKILLHUB_URL: ${{ vars.SEACLOUD_SKILLHUB_URL }}
+      INPUT_SEACLOUD_FOLKOS_PROXY_URL: ${{ vars.SEACLOUD_FOLKOS_PROXY_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Linux cross linkers
+        if: ${{ matrix.apt_packages != '' }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.apt_packages }}
+
+      - name: Configure linker
+        if: ${{ matrix.linker_env != '' }}
+        run: echo "${{ matrix.linker_env }}" >> "$GITHUB_ENV"
 
       - name: Resolve release endpoints
-        env:
-          INPUT_SEACLOUD_BASE_URL: ${{ vars.SEACLOUD_BASE_URL }}
-          INPUT_SEACLOUD_MODELS_URL: ${{ vars.SEACLOUD_MODELS_URL }}
-          INPUT_SEACLOUD_GENERATION_URL: ${{ vars.SEACLOUD_GENERATION_URL }}
-          INPUT_SEACLOUD_SKILLHUB_URL: ${{ vars.SEACLOUD_SKILLHUB_URL }}
-          INPUT_SEACLOUD_FOLKOS_PROXY_URL: ${{ vars.SEACLOUD_FOLKOS_PROXY_URL }}
+        shell: bash
         run: |
           echo "SEACLOUD_BASE_URL=${INPUT_SEACLOUD_BASE_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
           echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}" >> "$GITHUB_ENV"
@@ -74,28 +131,57 @@ jobs:
           echo "SEACLOUD_SKILLHUB_URL=${INPUT_SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}" >> "$GITHUB_ENV"
           echo "SEACLOUD_FOLKOS_PROXY_URL=${INPUT_SEACLOUD_FOLKOS_PROXY_URL:-http://folkos-gateway.dev.folkos.ai/folkos-proxy}" >> "$GITHUB_ENV"
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v6
+      - name: Build target artifact
+        shell: bash
+        run: TARGETS="${{ matrix.target_entry }}" ./scripts/build.sh
+
+      - name: Upload target artifact
+        uses: actions/upload-artifact@v4
         with:
-          version: latest
-          args: release --clean
+          name: ${{ matrix.artifact_name }}
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    needs:
+      - validate
+      - build-artifacts
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.validate.outputs.version }}
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create checksums
+        run: |
+          mkdir -p release-dist
+          for artifact in dist/seacloud_*; do
+            name="$(basename "$artifact")"
+            cp "$artifact" "release-dist/${name/seacloud_/seacloud_${VERSION}_}"
+          done
+          (cd release-dist && shasum -a 256 * > SHA256SUMS)
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-dist/*
 
   publish-npm:
-    needs: release
+    needs:
+      - validate
+      - release
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-    env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
 
       - name: Setup Node
         uses: actions/setup-node@v6
@@ -103,27 +189,19 @@ jobs:
           node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Download release artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
       - name: Print Node and npm versions
         run: |
           node --version
           npm --version
 
-      - name: Resolve release endpoints
-        env:
-          INPUT_SEACLOUD_BASE_URL: ${{ vars.SEACLOUD_BASE_URL }}
-          INPUT_SEACLOUD_MODELS_URL: ${{ vars.SEACLOUD_MODELS_URL }}
-          INPUT_SEACLOUD_GENERATION_URL: ${{ vars.SEACLOUD_GENERATION_URL }}
-          INPUT_SEACLOUD_SKILLHUB_URL: ${{ vars.SEACLOUD_SKILLHUB_URL }}
-          INPUT_SEACLOUD_FOLKOS_PROXY_URL: ${{ vars.SEACLOUD_FOLKOS_PROXY_URL }}
-        run: |
-          echo "SEACLOUD_BASE_URL=${INPUT_SEACLOUD_BASE_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_GENERATION_URL=${INPUT_SEACLOUD_GENERATION_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_SKILLHUB_URL=${INPUT_SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_FOLKOS_PROXY_URL=${INPUT_SEACLOUD_FOLKOS_PROXY_URL:-http://folkos-gateway.dev.folkos.ai/folkos-proxy}" >> "$GITHUB_ENV"
-
-      - name: Build bundled npm binaries
-        run: ./scripts/build.sh && npm run prepare:npm-bundles
+      - name: Build bundled npm assets
+        run: npm run prepare:npm-bundles
 
       - name: Preview npm package contents
         run: npm pack --dry-run

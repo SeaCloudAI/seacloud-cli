@@ -1,9 +1,13 @@
 dist/
 dist-dev/
+target/
 
 /vtrix
 /vtrix.exe
 /vtrix-*
+/seacloud
+/seacloud.exe
+/seacloud-*
 
 .DS_Store
 

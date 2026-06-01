@@ -14,7 +14,7 @@
     </a>
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
     <img src="https://img.shields.io/badge/node-%3E%3D18-339933" alt="Node.js >= 18">
-    <img src="https://img.shields.io/badge/go-%3E%3D1.26-00ADD8" alt="Go >= 1.26">
+    <img src="https://img.shields.io/badge/rust-stable-DEA584" alt="Rust stable">
   </p>
   <p>
     <a href="./README.md">English</a>
@@ -53,7 +53,7 @@ cd seacloud-cli
 make install
 ```
 
-> 需要 Go 1.26+
+> 需要稳定版 Rust 工具链
 > 安装后的二进制会注入公开版本使用的默认服务地址。在会注入 `GATEWAY_URL` 和托管 token 的运行时里，Vtrix 生成请求可以自动改写到运行时代理。
 
 如果 `/usr/local/bin` 需要更高权限：
@@ -227,18 +227,17 @@ npm 包在安装时会自动下载当前平台对应的预编译二进制。
 如果你需要手动维护发布流程，仓库中保留了这些文件：
 
 - `scripts/build.sh`
-- `.goreleaser.yml`
 - `scripts/set-release-version.js`
 
 ## 仓库结构
 
 ```text
 seacloud-cli/
-├── cmd/                 # CLI 命令定义
-├── internal/auth/       # 认证客户端与登录流程
-├── internal/models/     # 模型列表与模型规格接口
-├── internal/generation/ # 任务提交与轮询
-├── internal/skillhub/   # SkillHub 客户端与安装逻辑
+├── src/cmd/             # CLI 命令定义
+├── src/internal/auth/   # 认证客户端与登录流程
+├── src/internal/models/ # 模型列表与模型规格接口
+├── src/internal/generation/ # 任务提交与轮询
+├── src/internal/skillhub/   # SkillHub 客户端与安装逻辑
 ├── package.json         # npm 包清单
 ├── scripts/             # 构建、发版与 npm 包装脚本
 └── skills/              # 内置技能定义
@@ -251,6 +250,6 @@ seacloud-cli/
 本地验证可使用：
 
 ```bash
-go test ./...
-go run . --help
+cargo test
+cargo run -- --help
 ```

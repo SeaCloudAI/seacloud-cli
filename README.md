@@ -14,7 +14,7 @@
     </a>
     <img src="https://img.shields.io/badge/license-MIT-blue" alt="MIT License">
     <img src="https://img.shields.io/badge/node-%3E%3D18-339933" alt="Node.js >= 18">
-    <img src="https://img.shields.io/badge/go-%3E%3D1.26-00ADD8" alt="Go >= 1.26">
+    <img src="https://img.shields.io/badge/rust-stable-DEA584" alt="Rust stable">
   </p>
   <p>
     <a href="./README.zh.md">中文文档</a>
@@ -53,7 +53,7 @@ cd seacloud-cli
 make install
 ```
 
-> Requires Go 1.26+
+> Requires a stable Rust toolchain.
 > The installed binary uses the default public service endpoints. In managed runtimes that inject `GATEWAY_URL` plus a managed token, Vtrix generation requests can be rewritten through the runtime proxy automatically.
 
 If `/usr/local/bin` requires elevated permissions:
@@ -227,18 +227,17 @@ The npm package downloads the matching prebuilt binary for the user platform dur
 If you maintain releases manually, the repository includes:
 
 - `scripts/build.sh`
-- `.goreleaser.yml`
 - `scripts/set-release-version.js`
 
 ## Repository Layout
 
 ```text
 seacloud-cli/
-├── cmd/                # CLI command definitions
-├── internal/auth/      # Auth client and login flow
-├── internal/models/    # Model list and spec APIs
-├── internal/generation/# Task submit and polling
-├── internal/skillhub/  # SkillHub client and install logic
+├── src/cmd/            # CLI command definitions
+├── src/internal/auth/  # Auth client and login flow
+├── src/internal/models/# Model list and spec APIs
+├── src/internal/generation/ # Task submit and polling
+├── src/internal/skillhub/   # SkillHub client and install logic
 ├── package.json        # npm package manifest
 ├── scripts/            # Build, release, and npm wrapper scripts
 └── skills/             # Built-in skill definitions
@@ -251,6 +250,6 @@ Issues and pull requests are welcome. Before sending larger changes, it is best 
 For local verification:
 
 ```bash
-go test ./...
-go run . --help
+cargo test
+cargo run -- --help
 ```

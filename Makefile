@@ -1,4 +1,4 @@
-GO ?= go
+CARGO ?= cargo
 APP ?= seacloud
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 PREFIX ?= /usr/local
@@ -9,19 +9,17 @@ SEACLOUD_GENERATION_URL ?= $(SEACLOUD_BASE_URL)
 SEACLOUD_SKILLHUB_URL ?= https://skill-hub.vtrix.ai/api/v1
 SEACLOUD_FOLKOS_PROXY_URL ?=
 
-LDFLAGS := -s -w \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version=$(VERSION) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=$(SEACLOUD_BASE_URL) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL=$(SEACLOUD_MODELS_URL) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL=$(SEACLOUD_GENERATION_URL) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/images.BaseURL=$(SEACLOUD_FOLKOS_PROXY_URL) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/skillhub.BaseURL=$(SEACLOUD_SKILLHUB_URL) \
-	-X github.com/SeaCloudAI/seacloud-cli/internal/config.DefaultFolkosProxyBaseURL=$(SEACLOUD_FOLKOS_PROXY_URL)
-
 .PHONY: build install uninstall clean
 
 build:
-	$(GO) build -ldflags "$(LDFLAGS)" -o $(APP) .
+	SEACLOUD_BUILD_VERSION="$(VERSION)" \
+	SEACLOUD_BASE_URL="$(SEACLOUD_BASE_URL)" \
+	SEACLOUD_MODELS_URL="$(SEACLOUD_MODELS_URL)" \
+	SEACLOUD_GENERATION_URL="$(SEACLOUD_GENERATION_URL)" \
+	SEACLOUD_SKILLHUB_URL="$(SEACLOUD_SKILLHUB_URL)" \
+	SEACLOUD_FOLKOS_PROXY_URL="$(SEACLOUD_FOLKOS_PROXY_URL)" \
+	$(CARGO) build --release
+	cp target/release/$(APP) $(APP)
 
 install: build
 	install -d $(PREFIX)/bin
@@ -33,3 +31,4 @@ uninstall:
 
 clean:
 	rm -f "$(APP)"
+	rm -rf target

@@ -44,7 +44,7 @@ func ValidateAndCoerce(modelID string, raw map[string]string, specParams []model
 	out := make(map[string]any)
 
 	for _, p := range specParams {
-		if p.Type == "array" || strings.HasPrefix(p.Type, "array[") || strings.HasPrefix(p.Type, "array\\[") {
+		if paramTypeAllowsArray(p.Type) {
 			value, hasVal := raw[p.Name]
 			if !hasVal {
 				if p.Required {
@@ -52,13 +52,16 @@ func ValidateAndCoerce(modelID string, raw map[string]string, specParams []model
 				}
 				continue
 			}
-			var arr []any
-			if err := json.Unmarshal([]byte(value), &arr); err != nil {
-				return nil, clierrors.ErrInvalidParam(modelID, p.Name,
-					fmt.Sprintf("expected a JSON array (e.g. '[\"url1\",\"url2\"]' or '[{\"key\":\"value\"}]'), got: %s", value))
+			shouldParseArray := paramTypeIsArrayOnly(p.Type) || strings.HasPrefix(strings.TrimSpace(value), "[")
+			if shouldParseArray {
+				var arr []any
+				if err := json.Unmarshal([]byte(value), &arr); err != nil {
+					return nil, clierrors.ErrInvalidParam(modelID, p.Name,
+						fmt.Sprintf("expected a JSON array (e.g. '[\"url1\",\"url2\"]' or '[{\"key\":\"value\"}]'), got: %s", value))
+				}
+				out[p.Name] = arr
+				continue
 			}
-			out[p.Name] = arr
-			continue
 		}
 
 		if p.Type == "object" && len(p.Children) > 0 {
@@ -99,6 +102,34 @@ func ValidateAndCoerce(modelID string, raw map[string]string, specParams []model
 	}
 
 	return out, nil
+}
+
+func paramTypeAllowsArray(rawType string) bool {
+	for _, typ := range paramTypeOptions(rawType) {
+		if typ == "array" || strings.HasPrefix(typ, "array[") || strings.HasPrefix(typ, "array\\[") {
+			return true
+		}
+	}
+	return false
+}
+
+func paramTypeIsArrayOnly(rawType string) bool {
+	options := paramTypeOptions(rawType)
+	return len(options) == 1 && (options[0] == "array" || strings.HasPrefix(options[0], "array[") || strings.HasPrefix(options[0], "array\\["))
+}
+
+func paramTypeOptions(rawType string) []string {
+	parts := strings.FieldsFunc(strings.ToLower(rawType), func(r rune) bool {
+		return r == '/' || r == '|'
+	})
+	options := make([]string, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" {
+			options = append(options, part)
+		}
+	}
+	return options
 }
 
 func coerceValue(modelID string, p models.ModelParam, raw string) (any, error) {

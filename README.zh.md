@@ -31,7 +31,7 @@
 - **代理生图**：通过兼容的代理服务调用同步生图模型，并可选择输出资产 URL。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
-- **Agent 友好**：支持 `--dry-run`、JSON 输出、稳定命令结构和可直接复制的示例。
+- **Agent 友好**：支持丰富 `--help`、`schema`、`--dry-run`、JSON 输出、输出限量、可操作错误、稳定命令结构和可直接复制的示例。
 
 ## 安装
 
@@ -139,6 +139,25 @@ seacloud skills add some-skill
 seacloud skills config --show
 ```
 
+### 管理沙箱
+
+```bash
+seacloud sandbox create base
+seacloud sandbox create base --no-connect --wait
+seacloud sandbox list --state running,paused --format json
+seacloud sandbox exec <sandbox_id> ls -la
+seacloud sandbox connect <sandbox_id>
+seacloud sandbox kill <sandbox_id>
+```
+
+### 查询 CLI/API schema
+
+```bash
+seacloud schema list
+seacloud schema sandboxes.create
+seacloud schema webhooks.create --format json
+```
+
 ## 命令概览
 
 ### `seacloud auth`
@@ -200,6 +219,83 @@ seacloud images generate --prompt="一只蓝色猫" --output json
 seacloud images generate --prompt="一只蓝色猫" --output url
 ```
 
+### `seacloud sandbox`
+
+核心沙箱命令对齐 E2B CLI 的命令形态：
+
+```bash
+seacloud sandbox create [template]
+seacloud sandbox create base --no-connect --wait
+seacloud sandbox list --state running,paused --metadata app=agent --limit 10 --next-token <token>
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud sandbox exec --background <sandbox_id> "sleep 60 && echo done"
+seacloud sandbox exec --cwd /workspace --user root --env NODE_ENV=production <sandbox_id> node app.js
+seacloud sandbox connect <sandbox_id> --shell bash
+seacloud sandbox kill <sandbox_id>
+seacloud sandbox kill --all --state running,paused
+seacloud sandbox metrics <sandbox_id>
+seacloud sandbox metrics <sandbox_id_1> <sandbox_id_2> --output json
+```
+
+三端 SDK 已支持的 SeaCloud 沙箱能力也已暴露到 CLI：
+
+```bash
+seacloud sandbox create base --auto-resume --allow-internet-access=false --allow-out 1.1.1.1 --volume-mount cache:/cache
+seacloud sandbox network update <sandbox_id> --allow-public-traffic=true --deny-out 10.0.0.0/8
+seacloud sandbox logs <sandbox_id> --limit 100 --direction backward
+seacloud sandbox pause <sandbox_id>
+seacloud sandbox timeout <sandbox_id> --seconds 3600
+seacloud sandbox refresh <sandbox_id> --duration 300
+
+seacloud sandbox volume create cache
+seacloud sandbox volume list
+seacloud sandbox volume get <volume_id>
+seacloud sandbox volume delete <volume_id>
+
+seacloud sandbox events --type sandbox.lifecycle.created
+seacloud sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_... --event sandbox.lifecycle.created --max-attempts 5 --delay-seconds 1,5,30
+seacloud sandbox webhook update <webhook_id> --enabled=false
+seacloud sandbox webhook deliveries --status failed
+seacloud sandbox webhook replay <delivery_id>
+
+seacloud sandbox team list
+seacloud sandbox team metrics <team_id> --start 1710000000 --end 1710003600
+seacloud sandbox observability
+```
+
+`seacloud sandbox create <template>` 在交互终端中会按 E2B 习惯工作：创建沙箱、连接 shell、退出 shell 后删除沙箱。脚本化创建请使用 `--no-connect` 或 `--output json`。
+
+### `seacloud template`
+
+模板命令提供 E2B 迁移所需的本地模板项目和构建操作：
+
+```bash
+seacloud template init --language typescript --name my-template
+seacloud template migrate --language python --name my-template
+seacloud template build my-template --dockerfile Dockerfile
+seacloud template build my-template --image python:3.13 --cpu-count 2 --memory-mb 2048 --tag v1
+seacloud template build my-template --from-template base --no-wait
+seacloud template list --format json
+seacloud template get my-template
+seacloud template builds my-template
+seacloud template status <template_id> <build_id>
+seacloud template logs <template_id> <build_id> --limit 100
+seacloud template tags assign my-template:v1 production stable
+seacloud template tags list my-template
+seacloud template tags remove my-template staging
+seacloud template delete my-template
+```
+
+### `seacloud schema`
+
+`schema` 是一个不发网络请求的 Agent 参考命令。它会描述命令示例、API 方法和路径、认证头、path/query/body 字段、响应结构、分页方式、是否是破坏性操作，以及 dry-run 示例。
+
+```bash
+seacloud schema list
+seacloud schema sandboxes.create
+seacloud schema get templates.build --format json
+```
+
 ### `seacloud version`
 
 ```bash
@@ -209,14 +305,23 @@ seacloud version
 ## 自动化与输出
 
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
+- sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
 - 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为你的代理服务根地址。
-- 使用全局 `--dry-run` 在不发请求的前提下检查执行内容。
+- 使用 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL` 配置沙箱网关 API 根地址；如果填的是 `https://sandbox-gateway.cloud.seaart.ai` 这种网关根地址，CLI 会自动补 `/api/v1`。
+- sandbox/template 命令会从 SeaCloud 本地配置、`SEACLOUD_API_KEY`，或 E2B 兼容别名 `E2B_API_KEY` / `E2B_ACCESS_TOKEN` 读取 API key。
+- 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
+- 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会包含 `dryRun`、`noChangesMade`、method、path、body/query、是否破坏性操作和下一步提示。
+- Agent 不确定参数或响应结构时，先使用 `schema` 查询 sandbox/template API 的调用形状。
+- list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。
+- 参数错误会包含哪个字段出错、错在哪里，以及建议执行的修复命令或参数。
 
 示例：
 
 ```bash
 seacloud --dry-run run seedance_2_0 --param prompt=test
+seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
+seacloud schema webhooks.create --format json
 ```
 
 ## 发布说明

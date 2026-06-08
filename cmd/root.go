@@ -12,7 +12,7 @@ var dryRun bool
 var rootCmd = &cobra.Command{
 	Use:     "seacloud",
 	Short:   "SeaCloud CLI - Access multimodal AI with a single API Key",
-	Long:    "SeaCloud CLI lets you manage your account, browse models, and call multimodal AI services via API Key.",
+	Long:    "SeaCloud CLI lets you manage your account, browse models, run multimodal AI services, and manage sandbox workloads via API Key. Use --dry-run before write/delete automation and use schema to inspect Agent-readable command/API contracts.",
 	Version: buildinfo.Version,
 }
 
@@ -27,7 +27,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Print what would be executed without making any changes")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Preview the operation without credentials or state changes when the command supports it")
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(modelsCmd)
 	rootCmd.AddCommand(imagesCmd)

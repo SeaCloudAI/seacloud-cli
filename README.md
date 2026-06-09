@@ -31,7 +31,7 @@
 - **Proxy-based image generation**: Call sync image-generation models through a compatible proxy service, with optional asset URL output.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
-- **Agent-friendly UX**: Supports rich `--help`, `schema`, `--dry-run`, JSON output, output limits, actionable errors, stable command shapes, and copy-pasteable examples.
+- **Agent-friendly UX**: Supports `--dry-run`, JSON output, stable command shapes, and copy-pasteable examples.
 
 ## Install
 
@@ -139,25 +139,6 @@ seacloud skills add some-skill
 seacloud skills config --show
 ```
 
-### Manage sandboxes
-
-```bash
-seacloud sandbox create base
-seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --format json
-seacloud sandbox exec <sandbox_id> ls -la
-seacloud sandbox connect <sandbox_id>
-seacloud sandbox kill <sandbox_id>
-```
-
-### Inspect CLI/API schemas
-
-```bash
-seacloud schema list
-seacloud schema sandboxes.create
-seacloud schema webhooks.create --format json
-```
-
 ## Commands
 
 ### `seacloud auth`
@@ -219,85 +200,6 @@ seacloud images generate --prompt="a blue cat" --output json
 seacloud images generate --prompt="a blue cat" --output url
 ```
 
-### `seacloud sandbox`
-
-Core sandbox commands follow the E2B CLI shape:
-
-```bash
-seacloud sandbox create [template]
-seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --metadata app=agent --limit 10 --next-token <token>
-seacloud sandbox exec <sandbox_id> "python --version"
-seacloud sandbox exec --background <sandbox_id> "sleep 60 && echo done"
-seacloud sandbox exec --cwd /workspace --user root --env NODE_ENV=production <sandbox_id> node app.js
-seacloud sandbox connect <sandbox_id> --shell bash
-seacloud sandbox kill <sandbox_id>
-seacloud sandbox kill --all --state running,paused
-seacloud sandbox metrics <sandbox_id>
-seacloud sandbox metrics <sandbox_id_1> <sandbox_id_2> --output json
-```
-
-SeaCloud sandbox API features exposed by the SDKs are also available:
-
-```bash
-seacloud sandbox create base --auto-resume --allow-internet-access=false --allow-out 1.1.1.1 --volume-mount cache:/cache
-seacloud sandbox network update <sandbox_id> --allow-public-traffic=true --deny-out 10.0.0.0/8
-seacloud sandbox logs <sandbox_id> --limit 100 --direction backward
-seacloud sandbox pause <sandbox_id>
-seacloud sandbox timeout <sandbox_id> --seconds 3600
-seacloud sandbox refresh <sandbox_id> --duration 300
-
-seacloud sandbox volume create cache
-seacloud sandbox volume list
-seacloud sandbox volume get <volume_id>
-seacloud sandbox volume delete <volume_id>
-
-seacloud sandbox events --type sandbox.lifecycle.created
-seacloud sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_... --event sandbox.lifecycle.created --max-attempts 5 --delay-seconds 1,5,30
-seacloud sandbox webhook update <webhook_id> --enabled=false
-seacloud sandbox webhook deliveries --status failed
-seacloud sandbox webhook replay <delivery_id>
-
-seacloud sandbox team list
-seacloud sandbox team metrics <team_id> --start 1710000000 --end 1710003600
-seacloud sandbox observability
-```
-
-`seacloud sandbox create <template>` follows E2B's interactive behavior when run in a terminal: it creates the sandbox, connects a shell, and kills the sandbox when the shell exits. Use `--no-connect` or `--output json` for automation.
-
-### `seacloud template`
-
-Template commands provide the E2B migration surface for local template projects and build operations:
-
-```bash
-seacloud template init --language typescript --name my-template
-seacloud template migrate --language python --name my-template
-seacloud template build my-template --dockerfile Dockerfile
-seacloud template build my-template --image python:3.13 --cpu-count 2 --memory-mb 2048 --tag v1
-seacloud template build my-template --from-template base --no-wait
-seacloud template list --format json
-seacloud template get my-template
-seacloud template builds my-template
-seacloud template status <template_id> <build_id>
-seacloud template logs <template_id> <build_id> --limit 100
-seacloud template tags assign my-template:v1 production stable
-seacloud template tags list my-template
-seacloud template tags remove my-template staging
-seacloud template delete my-template
-```
-
-### `seacloud schema`
-
-`schema` is a no-network reference command for Agents. It describes command
-examples, API method and path, auth headers, path/query/body fields, response
-shape, pagination, destructive status, and dry-run examples.
-
-```bash
-seacloud schema list
-seacloud schema sandboxes.create
-seacloud schema get templates.build --format json
-```
-
 ### `seacloud version`
 
 ```bash
@@ -307,23 +209,14 @@ seacloud version
 ## Output and Automation
 
 - Use `--output json` where supported for machine-readable responses.
-- Use `--format json` on sandbox/template commands for E2B-compatible output flag naming.
 - Use `--output url` on task commands to print only result URLs.
 - Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your proxy service when using `seacloud images generate` or sync image models through `seacloud run`.
-- Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` to the sandbox gateway API root. A gateway root such as `https://sandbox-gateway.cloud.seaart.ai` is normalized to `/api/v1`.
-- Sandbox and template commands read API keys from the normal SeaCloud config, `SEACLOUD_API_KEY`, or E2B-compatible aliases `E2B_API_KEY` / `E2B_ACCESS_TOKEN`.
-- Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
-- Use global `--dry-run` before write/delete/replay operations. Dry-run output includes `dryRun`, `noChangesMade`, method, path, body/query, destructive status, and the next step.
-- Use `schema` when an Agent needs to discover parameters or response shape before calling sandbox/template APIs.
-- Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.
-- Parameter errors include the invalid field, what is wrong, and a suggested command or flag to fix it.
+- Use global `--dry-run` to inspect execution without sending requests.
 
 Example:
 
 ```bash
 seacloud --dry-run run seedance_2_0 --param prompt=test
-seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
-seacloud schema webhooks.create --format json
 ```
 
 ## Release

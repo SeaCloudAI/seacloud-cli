@@ -30,7 +30,13 @@ func (c *Client) Find(query, category string, interactive bool, cursor string) e
 		fmt.Printf("🔍 Searching for \"%s\"\n\n", displayQuery)
 	}
 
-	result, err := c.SearchSkills(query, category, cursor)
+	var result *SearchResult
+	var err error
+	if query == "" {
+		result, err = c.ListSkills(category, "", cursor)
+	} else {
+		result, err = c.SearchSkills(query, category, cursor)
+	}
 	if err != nil {
 		return err
 	}
@@ -60,7 +66,33 @@ func (c *Client) Find(query, category string, interactive bool, cursor string) e
 }
 
 func (c *Client) List(category, sort string) error {
-	return c.Find("", category, false, "")
+	result, err := c.ListSkills(category, sort, "")
+	if err != nil {
+		return err
+	}
+
+	if len(result.Results) == 0 {
+		fmt.Println("No skills found.")
+		return nil
+	}
+
+	fmt.Printf("Found %d skill(s)\n\n", len(result.Results))
+
+	for _, skill := range result.Results {
+		fmt.Printf("%s\n", color.CyanString(skill.DisplayName))
+		fmt.Printf("  %s\n", skill.Description)
+		fmt.Printf("  %s • %s\n",
+			color.New(color.FgHiBlack).Sprint("slug:"),
+			color.YellowString(skill.Slug),
+		)
+		fmt.Println()
+	}
+
+	if result.NextCursor != "" {
+		fmt.Printf("To view more results, use: --cursor %s\n", result.NextCursor)
+	}
+
+	return nil
 }
 
 func (c *Client) Add(slug, version string, global, skipConfirm bool) error {

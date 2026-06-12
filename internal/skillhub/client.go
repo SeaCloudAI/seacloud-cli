@@ -5,13 +5,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 )
 
 // BaseURL can be overridden at build time via ldflags:
 // Or at runtime via the SEACLOUD_SKILLHUB_URL environment variable.
 var BaseURL = ""
+
+const defaultTimeout = 30 * time.Second
 
 type Client struct {
 	apiBaseURL string
@@ -31,13 +36,15 @@ func NewClient() *Client {
 
 	return &Client{
 		apiBaseURL: apiURL,
-		httpClient: &http.Client{},
+		httpClient: &http.Client{Timeout: defaultTimeout},
 	}
 }
 
 func (c *Client) get(path string) (*http.Response, error) {
-	url := c.apiBaseURL + path
-	resp, err := c.httpClient.Get(url)
+	if strings.TrimSpace(c.apiBaseURL) == "" {
+		return nil, fmt.Errorf("skillhub base URL not configured: set SEACLOUD_SKILLHUB_URL or rebuild with -ldflags")
+	}
+	resp, err := c.httpClient.Get(strings.TrimRight(c.apiBaseURL, "/") + path)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
@@ -45,8 +52,10 @@ func (c *Client) get(path string) (*http.Response, error) {
 }
 
 func (c *Client) downloadBinary(path string) ([]byte, error) {
-	url := c.apiBaseURL + path
-	resp, err := c.httpClient.Get(url)
+	if strings.TrimSpace(c.apiBaseURL) == "" {
+		return nil, fmt.Errorf("skillhub base URL not configured: set SEACLOUD_SKILLHUB_URL or rebuild with -ldflags")
+	}
+	resp, err := c.httpClient.Get(strings.TrimRight(c.apiBaseURL, "/") + path)
 	if err != nil {
 		return nil, fmt.Errorf("download failed: %w", err)
 	}
@@ -103,23 +112,33 @@ func (c *Client) DownloadSkill(slug, version string) ([]byte, error) {
 }
 
 type SearchResult struct {
-	Results []struct {
-		Slug        string `json:"slug"`
-		DisplayName string `json:"displayName"`
-		Description string `json:"description"`
-		UpdatedAt   int64  `json:"updatedAt"`
-	} `json:"results"`
-	NextCursor string `json:"nextCursor"`
+	Results    []SkillSummary `json:"results"`
+	NextCursor string         `json:"nextCursor"`
+}
+
+type SkillSummary struct {
+	Slug        string `json:"slug"`
+	DisplayName string `json:"displayName"`
+	Description string `json:"description"`
+	UpdatedAt   int64  `json:"updatedAt"`
+}
+
+type skillsListResponse struct {
+	Items      []SkillSummary `json:"items"`
+	NextCursor string         `json:"nextCursor"`
 }
 
 func (c *Client) SearchSkills(query, category, cursor string) (*SearchResult, error) {
-	path := "/search?q=" + query + "&limit=20"
+	q := url.Values{}
+	q.Set("q", query)
+	q.Set("limit", "20")
 	if category != "" {
-		path += "&category=" + category
+		q.Set("category", category)
 	}
 	if cursor != "" {
-		path += "&cursor=" + cursor
+		q.Set("cursor", cursor)
 	}
+	path := "/search?" + q.Encode()
 
 	resp, err := c.get(path)
 	if err != nil {
@@ -138,6 +157,42 @@ func (c *Client) SearchSkills(query, category, cursor string) (*SearchResult, er
 	}
 
 	return &result, nil
+}
+
+func (c *Client) ListSkills(category, sort, cursor string) (*SearchResult, error) {
+	q := url.Values{}
+	q.Set("limit", "20")
+	if category != "" {
+		q.Set("category", category)
+	}
+	if sort != "" {
+		q.Set("sort", sort)
+	}
+	if cursor != "" {
+		q.Set("cursor", cursor)
+	}
+	path := "/skills?" + q.Encode()
+
+	resp, err := c.get(path)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("list failed: HTTP %d - %s", resp.StatusCode, string(body))
+	}
+
+	var result skillsListResponse
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("parse response failed: %w", err)
+	}
+
+	return &SearchResult{
+		Results:    result.Items,
+		NextCursor: result.NextCursor,
+	}, nil
 }
 
 func homeDir() string {

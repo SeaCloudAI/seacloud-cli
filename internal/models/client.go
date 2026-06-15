@@ -13,6 +13,7 @@ import (
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
+	"github.com/SeaCloudAI/seacloud-cli/internal/modelendpoints"
 )
 
 // BaseURL can be overridden at build time via ldflags:
@@ -22,23 +23,34 @@ import (
 // Or at runtime via the SEACLOUD_MODELS_URL environment variable.
 var BaseURL = ""
 
+// ListURL and SpecURL can be overridden at build time via ldflags, or at
+// runtime via SEACLOUD_MODELS_LIST_URL and SEACLOUD_MODELS_SPEC_URL.
+var (
+	ListURL = ""
+	SpecURL = ""
+)
+
 const defaultModelsTimeout = 30 * time.Second
 
 type Client struct {
 	httpClient *http.Client
 	baseURL    string
+	listURL    string
+	specURL    string
 	authToken  string
 }
 
 func NewClient() *Client {
 	base := BaseURL
-	if env := os.Getenv("SEACLOUD_MODELS_URL"); env != "" {
+	if env := os.Getenv(modelendpoints.EnvBaseURL); env != "" {
 		base = env
 	}
 	base = config.RewriteURLThroughFolkosProxy(base)
 	return &Client{
 		httpClient: &http.Client{Timeout: defaultModelsTimeout},
 		baseURL:    base,
+		listURL:    config.RewriteURLThroughFolkosProxy(modelendpoints.ConfiguredURL(ListURL, modelendpoints.EnvListURL)),
+		specURL:    config.RewriteURLThroughFolkosProxy(modelendpoints.ConfiguredURL(SpecURL, modelendpoints.EnvSpecURL)),
 		authToken:  config.ExecTokenFromEnv(),
 	}
 }
@@ -47,7 +59,11 @@ func (c *Client) get(path string, out any) error {
 	if c.baseURL == "" {
 		return fmt.Errorf("models base URL not configured: set SEACLOUD_MODELS_URL or rebuild with -ldflags")
 	}
-	req, err := http.NewRequest(http.MethodGet, strings.TrimRight(c.baseURL, "/")+path, nil)
+	return c.getURL(strings.TrimRight(c.baseURL, "/")+path, out)
+}
+
+func (c *Client) getURL(rawURL string, out any) error {
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err
 	}
@@ -92,6 +108,9 @@ type Model struct {
 	Description      string   `json:"description"`
 	InputModalities  []string `json:"input_modalities"`
 	OutputModalities []string `json:"output_modalities"`
+	SourceID         string   `json:"source_id,omitempty"`
+	HasSpec          bool     `json:"has_spec,omitempty"`
+	SpecProtocol     string   `json:"spec_protocol,omitempty"`
 }
 
 // ModelsListResponse is the data field from /api/v1/skill/models.
@@ -119,10 +138,24 @@ func (c *Client) List(params ListParams) (*ModelsListResponse, error) {
 	}
 
 	var result ModelsListResponse
-	if err := c.get(path, &result); err != nil {
+	var err error
+	if c.listURL != "" {
+		err = c.getConfiguredList(q, &result)
+	} else {
+		err = c.get(path, &result)
+	}
+	if err != nil {
 		return nil, err
 	}
 	return &result, nil
+}
+
+func (c *Client) getConfiguredList(query url.Values, out any) error {
+	endpoint, err := modelendpoints.AppendQuery(c.listURL, query)
+	if err != nil {
+		return err
+	}
+	return c.getURL(endpoint, out)
 }
 
 // ModelSpec is the data field from /api/v1/skill/models/:id/spec.
@@ -165,7 +198,14 @@ type ParamConstraints struct {
 
 func (c *Client) GetSpec(modelID string) (*ModelSpec, error) {
 	var spec ModelSpec
-	if err := c.get("/api/v1/skill/models/"+modelID+"/spec", &spec); err != nil {
+	path := "/api/v1/skill/models/" + modelID + "/spec"
+	var err error
+	if c.specURL != "" {
+		err = c.getURL(modelendpoints.ReplaceModelID(c.specURL, modelID), &spec)
+	} else {
+		err = c.get(path, &spec)
+	}
+	if err != nil {
 		return nil, err
 	}
 	if rewritten := config.RewriteURLThroughFolkosProxy(spec.API.Endpoint); rewritten != spec.API.Endpoint {

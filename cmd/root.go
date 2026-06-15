@@ -34,4 +34,5 @@ func init() {
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(taskCmd)
 	rootCmd.AddCommand(skillsCmd)
+	rootCmd.AddCommand(agentCmd)
 }

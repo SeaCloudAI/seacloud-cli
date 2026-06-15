@@ -40,6 +40,13 @@ Exit codes:
 			return clierrors.ErrNoAPIKey()
 		}
 
+		if task, handled, err := getQueueTaskStatus(cfg.APIKey, taskID); handled {
+			if err != nil {
+				return err
+			}
+			return printQueueTaskStatus(task)
+		}
+
 		task, err := generation.GetTask(cfg.APIKey, taskID)
 		if err != nil {
 			return fmt.Errorf("failed to fetch task %s: %w", taskID, err)

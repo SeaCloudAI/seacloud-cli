@@ -43,6 +43,18 @@ npm install -g @seacloudai/seacloud-cli
 
 > Requires Node.js 18+
 
+The npm installer also best-effort deploys a thin Gateway Skill to your agent
+skills directory so new agent sessions can discover `seacloud`. Skill deployment
+failures are reported as warnings and do not block the CLI binary install. Set
+`SEACLOUD_SKIP_SKILL_DEPLOY=1` to skip this step.
+
+Before an agent runs real SeaCloud commands, it should load the current CLI
+capabilities from the installed binary:
+
+```bash
+seacloud agent describe
+```
+
 ### Install from source
 
 Default install:
@@ -92,7 +104,6 @@ seacloud auth status
 
 ```bash
 seacloud models list
-seacloud models list --type video
 seacloud models spec kling_v2_6_i2v
 seacloud models spec seedance_2_0 --output json
 ```

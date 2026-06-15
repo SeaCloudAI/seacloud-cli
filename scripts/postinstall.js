@@ -6,6 +6,7 @@ const os = require("os");
 const path = require("path");
 const AdmZip = require("adm-zip");
 const tar = require("tar");
+const { deployGatewaySkill } = require("./gateway-skill-deploy");
 
 const rootDir = path.resolve(__dirname, "..");
 const pkg = require(path.join(rootDir, "package.json"));
@@ -63,6 +64,7 @@ async function main() {
     }
 
     log(`installed ${target.bin} to vendor directory`);
+    deployGatewaySkillSafely();
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -273,6 +275,14 @@ function findFileRecursive(dir, fileName) {
 
 function log(message) {
   console.log(`[seacloud installer] ${message}`);
+}
+
+function deployGatewaySkillSafely() {
+  try {
+    deployGatewaySkill({ rootDir, logger: log });
+  } catch (err) {
+    log(`warning: gateway skill deploy failed: ${err.message}`);
+  }
 }
 
 main().catch((err) => {

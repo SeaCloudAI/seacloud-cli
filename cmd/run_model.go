@@ -1,0 +1,241 @@
+package cmd
+
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"time"
+
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
+	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
+	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
+	"github.com/SeaCloudAI/seacloud-cli/internal/models"
+	"github.com/SeaCloudAI/seacloud-cli/internal/queue"
+	"github.com/SeaCloudAI/seacloud-cli/internal/taskcache"
+)
+
+func executeModelRun(modelID, resolvedModelID string) error {
+	raw, err := generation.ParseParams(runParams)
+	if err != nil {
+		return err
+	}
+	if IsDryRun() {
+		return dryRunModel(modelID, raw)
+	}
+
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	if cfg.APIKey == "" {
+		return clierrors.ErrNoAPIKey()
+	}
+
+	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
+	if err == nil {
+		return runWithContract(cfg.APIKey, modelID, contract, raw)
+	}
+	if errors.Is(err, contracts.ErrIncompatibleSchema) {
+		return err
+	}
+	if !errors.Is(err, contracts.ErrNotFound) {
+		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
+	}
+	return runWithContract(cfg.APIKey, modelID, contracts.Generic(modelID), raw)
+}
+
+func dryRunModel(modelID string, raw map[string]string) error {
+	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
+	if err == nil {
+		return dryRunContract(modelID, contract, raw)
+	}
+	if errors.Is(err, contracts.ErrIncompatibleSchema) {
+		return err
+	}
+	return dryRunContract(modelID, contracts.Generic(modelID), raw)
+}
+
+func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[string]string) error {
+	raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
+	params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
+	if err != nil {
+		return err
+	}
+	if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
+		return err
+	}
+	if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
+		return err
+	}
+	body, _ := json.Marshal(params)
+	fmt.Fprintf(os.Stderr, "[dry-run] protocol=%s\n", contract.Protocol)
+	fmt.Fprintf(os.Stderr, "[dry-run] body_mode=%s\n", contract.BodyMode)
+	fmt.Fprintf(os.Stderr, "[dry-run] submit=%s %s\n", contract.Endpoints.Submit.Method, contract.Endpoints.Submit.Path)
+	fmt.Fprintf(os.Stderr, "[dry-run] body=%s\n", string(body))
+	return nil
+}
+
+func runWithContract(apiKey, modelID string, contract *contracts.ModelContract, raw map[string]string) error {
+	switch {
+	case contract.Protocol == "queue" && contract.BodyMode == "raw_json":
+		raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
+		params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
+		if err != nil {
+			return err
+		}
+		if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
+			return err
+		}
+		if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
+			return err
+		}
+		return runQueueContract(apiKey, contract, params)
+	case contract.Protocol == "generation" || contract.BodyMode == "generation_wrapper":
+		return runWithLegacySpec(apiKey, modelID, models.ResolveModelID(modelID), raw)
+	default:
+		return fmt.Errorf("unsupported model contract protocol/body_mode: %s/%s", contract.Protocol, contract.BodyMode)
+	}
+}
+
+func runQueueContract(apiKey string, contract *contracts.ModelContract, params map[string]any) error {
+	client := queue.NewClient(apiKey)
+	submitted, err := client.Submit(*contract, params)
+	if err != nil {
+		return clierrors.ErrSubmitFailed(err)
+	}
+	_ = taskcache.Save(taskcache.Metadata{
+		RequestID:        submitted.ID,
+		ModelID:          contract.ModelID,
+		Protocol:         contract.Protocol,
+		BodyMode:         contract.BodyMode,
+		ContractRevision: contract.Revision,
+		StatusEndpoint:   contract.Endpoints.Status.Path,
+		ResultEndpoint:   contract.Endpoints.Result.Path,
+	})
+
+	fmt.Fprintf(os.Stderr, "Task submitted: %s\nWaiting for result...\n", submitted.ID)
+	task, err := pollQueueResult(client, contract, submitted.ID)
+	if err != nil {
+		return err
+	}
+	saveQueueProviderContext(submitted.ID, task)
+	return printQueueTask(task)
+}
+
+func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, requestID string) (*queue.Task, error) {
+	deadline := time.Now().Add(time.Duration(runTimeout) * time.Second)
+	lastProgress := -1.0
+	for time.Now().Before(deadline) {
+		status, err := client.GetStatus(*contract, requestID)
+		if err != nil {
+			return nil, err
+		}
+		saveQueueProviderContext(requestID, status)
+		printProgress(status.Progress, &lastProgress)
+		switch status.Status {
+		case "completed":
+			return client.GetResult(*contract, requestID)
+		case "failed":
+			reason := "unknown error"
+			if status.Error != nil && status.Error.Message != "" {
+				reason = status.Error.Message
+			}
+			return nil, clierrors.ErrTaskFailed(requestID, reason)
+		}
+		time.Sleep(5 * time.Second)
+	}
+	return nil, clierrors.ErrTaskTimeout(requestID)
+}
+
+func runWithLegacySpec(apiKey, modelID, resolvedModelID string, raw map[string]string) error {
+	spec, err := models.GetSpec(modelID)
+	if err != nil {
+		return err
+	}
+	params, err := generation.ValidateAndCoerce(modelID, raw, spec.Parameters)
+	if err != nil {
+		return err
+	}
+	resp, err := generation.Submit(apiKey, spec.API.Endpoint, resolvedModelID, params)
+	if err != nil {
+		return clierrors.ErrSubmitFailed(err)
+	}
+
+	fmt.Fprintf(os.Stderr, "Task submitted: %s\nWaiting for result...\n", resp.ID)
+	task, pollErr := generation.PollTask(apiKey, spec.API.Endpoint, resp.ID, 5*time.Second,
+		time.Duration(runTimeout)*time.Second, func(progress float64) {
+			printProgress(progress, nil)
+		})
+	if pollErr != nil {
+		if task != nil && task.Status == "failed" {
+			reason := "unknown error"
+			if task.Error != nil {
+				reason = task.Error.Message
+			}
+			return clierrors.ErrTaskFailed(resp.ID, reason)
+		}
+		return clierrors.ErrTaskTimeout(resp.ID)
+	}
+	if task.Model == resolvedModelID {
+		task.Model = modelID
+	}
+	return printGenerationTask(task)
+}
+
+func printProgress(progress float64, lastProgress *float64) {
+	pct := int(progress * 100)
+	if lastProgress != nil {
+		if float64(pct)-*lastProgress < 5 && !(*lastProgress < 0 && pct == 0) {
+			return
+		}
+		*lastProgress = float64(pct)
+	}
+	fmt.Fprintf(os.Stderr, "Progress: %d%%\n", pct)
+}
+
+func printGenerationTask(task *generation.TaskStatus) error {
+	if runOutput == "url" {
+		for _, u := range task.URLs() {
+			fmt.Println(u)
+		}
+		return nil
+	}
+	if runOutput == "json" {
+		b, _ := json.MarshalIndent(task, "", "  ")
+		fmt.Println(string(b))
+		return nil
+	}
+	fmt.Printf("Status: %s\n", task.Status)
+	for _, group := range task.Output {
+		for _, content := range group.Content {
+			if content.URL != "" {
+				fmt.Printf("URL: %s\n", content.URL)
+			}
+			if content.ImgID != 0 {
+				fmt.Printf("ImgID: %d\n", content.ImgID)
+			}
+		}
+	}
+	return nil
+}
+
+func printQueueTask(task *queue.Task) error {
+	if runOutput == "url" {
+		for _, u := range task.URLs() {
+			fmt.Println(u)
+		}
+		return nil
+	}
+	if runOutput == "json" {
+		b, _ := json.MarshalIndent(task, "", "  ")
+		fmt.Println(string(b))
+		return nil
+	}
+	fmt.Printf("Status: %s\n", task.Status)
+	for _, u := range task.URLs() {
+		fmt.Printf("URL: %s\n", u)
+	}
+	return nil
+}

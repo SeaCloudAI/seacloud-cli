@@ -25,11 +25,14 @@ var modelAliasConfig = mustLoadAliasConfig()
 
 var reverseExplicitModelAliases = reverseModelAliases(modelAliasConfig.Exact)
 
+const seaCloudSourcePrefix = "seacloud__"
+
 func ResolveModelID(modelID string) string {
 	modelID = strings.TrimSpace(modelID)
 	if modelID == "" {
 		return ""
 	}
+	modelID = strings.TrimPrefix(modelID, seaCloudSourcePrefix)
 
 	if resolved, ok := modelAliasConfig.Exact[modelID]; ok {
 		return resolved

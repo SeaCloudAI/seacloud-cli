@@ -143,11 +143,12 @@ type OutputGroup struct {
 }
 
 type OutputContent struct {
-	Type     string `json:"type"` // video | image | audio
-	URL      string `json:"url"`
-	Duration string `json:"duration,omitempty"`
-	ID       string `json:"id,omitempty"`
-	ImgID    int64  `json:"img_id,omitempty"`
+	Type     string         `json:"type"` // video | image | audio
+	URL      string         `json:"url"`
+	Duration string         `json:"duration,omitempty"`
+	ID       string         `json:"id,omitempty"`
+	ImgID    int64          `json:"img_id,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type UsageInfo struct {

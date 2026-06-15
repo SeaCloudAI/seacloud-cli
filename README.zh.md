@@ -43,6 +43,16 @@ npm install -g @seacloudai/seacloud-cli
 
 > 需要 Node.js 18+
 
+npm 安装器还会 best-effort 部署一份很薄的 Gateway Skill 到 Agent 技能目录，
+让新的 Agent 会话能发现 `seacloud`。Skill 部署失败只会输出 warning，
+不会阻断 CLI 二进制安装。可设置 `SEACLOUD_SKIP_SKILL_DEPLOY=1` 跳过这一步。
+
+Agent 执行真实 SeaCloud 命令前，应先从已安装的二进制读取当前 CLI 能力说明：
+
+```bash
+seacloud agent describe
+```
+
 ### 从源码安装
 
 默认安装方式：
@@ -92,7 +102,6 @@ seacloud auth status
 
 ```bash
 seacloud models list
-seacloud models list --type video
 seacloud models spec kling_v2_6_i2v
 seacloud models spec seedance_2_0 --output json
 ```

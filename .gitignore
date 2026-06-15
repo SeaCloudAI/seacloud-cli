@@ -1,6 +1,7 @@
 dist/
 dist-dev/
 docs/
+npm-bundles/
 
 /vtrix
 /vtrix.exe

@@ -9,6 +9,7 @@ var (
 	findCategory    string
 	findInteractive bool
 	findCursor      string
+	findOutput      string
 )
 
 var skillsFindCmd = &cobra.Command{
@@ -17,13 +18,16 @@ var skillsFindCmd = &cobra.Command{
 	Long:  "Search for skills by keyword or browse by category interactively",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if err := validateOutputFormat("--output", findOutput, "json"); err != nil {
+			return err
+		}
 		query := ""
 		if len(args) > 0 {
 			query = args[0]
 		}
 
 		client := skillhub.NewClient()
-		return client.Find(query, findCategory, findInteractive, findCursor)
+		return client.Find(query, findCategory, findInteractive, findCursor, findOutput)
 	},
 }
 
@@ -31,4 +35,5 @@ func init() {
 	skillsFindCmd.Flags().StringVarP(&findCategory, "category", "c", "", "Filter by category")
 	skillsFindCmd.Flags().BoolVarP(&findInteractive, "interactive", "i", false, "Interactive mode (browse by category)")
 	skillsFindCmd.Flags().StringVar(&findCursor, "cursor", "", "Page cursor for pagination")
+	skillsFindCmd.Flags().StringVar(&findOutput, "output", "", "Output format: json")
 }

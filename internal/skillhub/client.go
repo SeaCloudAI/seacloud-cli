@@ -117,10 +117,31 @@ type SearchResult struct {
 }
 
 type SkillSummary struct {
-	Slug        string `json:"slug"`
-	DisplayName string `json:"displayName"`
-	Description string `json:"description"`
-	UpdatedAt   int64  `json:"updatedAt"`
+	Slug               string               `json:"slug"`
+	DisplayName        string               `json:"displayName"`
+	Description        string               `json:"description"`
+	Version            string               `json:"version,omitempty"`
+	Downloads          int64                `json:"downloads,omitempty"`
+	DownloadCount      int64                `json:"downloadCount,omitempty"`
+	DownloadCountSnake int64                `json:"download_count,omitempty"`
+	Category           string               `json:"category,omitempty"`
+	Categories         []string             `json:"categories,omitempty"`
+	LatestVersion      *SkillVersionSummary `json:"latestVersion,omitempty"`
+	Stats              *SkillStats          `json:"stats,omitempty"`
+	UpdatedAt          int64                `json:"updatedAt"`
+}
+
+type SkillVersionSummary struct {
+	Version string `json:"version"`
+}
+
+type SkillStats struct {
+	Downloads       int64 `json:"downloads,omitempty"`
+	Stars           int64 `json:"stars,omitempty"`
+	Versions        int64 `json:"versions,omitempty"`
+	Comments        int64 `json:"comments,omitempty"`
+	InstallsCurrent int64 `json:"installsCurrent,omitempty"`
+	InstallsAllTime int64 `json:"installsAllTime,omitempty"`
 }
 
 type skillsListResponse struct {

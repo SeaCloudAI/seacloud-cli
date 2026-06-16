@@ -13,7 +13,8 @@ import (
 
 var modelsCmd = &cobra.Command{
 	Use:   "models",
-	Short: "Browse available models",
+	Short: "Discover models and inspect model specs",
+	Long:  `Browse available SeaCloud models and inspect model specs before calling them. Use this command group when the user describes a multimodal task, but the agent does not yet know the available models, the right model ID to choose, or the parameters required for the call.`,
 }
 
 var (
@@ -26,8 +27,8 @@ var (
 
 var modelsListCmd = &cobra.Command{
 	Use:   "list",
-	Short: "List available models",
-	Long: `List models available on seacloud.
+	Short: "List available SeaCloud models",
+	Long: `List available SeaCloud models with model IDs, names, types, capability descriptions, input modalities, and output modalities to help the agent choose candidate models.
 
 Output fields (--output json):
   id                 Model identifier, use this as <model_id> in "seacloud models spec <model_id>"
@@ -97,17 +98,26 @@ var modelsSpecOutput string
 
 var modelsSpecCmd = &cobra.Command{
 	Use:   "spec <model_id>",
-	Short: "Get full parameter spec for a model",
-	Long: `Get the queue contract for a model.
+	Short: "Get the live model-contract.v1 parameter spec for a model",
+	Long: `Get the live model-contract.v1 parameter spec for a model before constructing "seacloud run".
 
 Default output is a concise queue contract summary containing:
   - protocol and body mode
   - submit endpoint
   - how to pass parameters with --param
 
-Use --output json to get the raw model-contract.v1 structure. If the model is
-listed but has no published detailed contract, the CLI returns a generic queue
-contract that accepts raw --param key=value fields.`,
+Use --output json to get the raw structured contract including:
+  schema_version  Contract schema version
+  model_id        Model identifier
+  display_name    Human-readable model name
+  protocol        Execution protocol
+  body_mode       Request body mode
+  endpoints       Submit, status, result, and cancel endpoints
+  input_schema    JSON Schema-style parameter definition
+  prerequisites   Required upstream task metadata, when present
+
+If the model is listed but has no published detailed contract, the CLI returns a
+generic queue contract that accepts raw --param key=value fields.`,
 	Example: `  seacloud models spec kling_v2_6_i2v
   seacloud models spec seedance_2_0 --output json`,
 	Args: cobra.ExactArgs(1),

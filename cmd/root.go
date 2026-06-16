@@ -10,9 +10,26 @@ import (
 var dryRun bool
 
 var rootCmd = &cobra.Command{
-	Use:     "seacloud",
-	Short:   "SeaCloud CLI - Access multimodal AI with a single API Key",
-	Long:    "SeaCloud CLI lets you manage your account, browse models, run multimodal AI services, and manage sandbox workloads via API Key.",
+	Use:   "seacloud",
+	Short: "SeaCloud CLI - Access multimodal AI with a single API Key",
+	Long: `SeaCloud CLI is an agent-facing multimodal execution CLI. Use it when an AI agent needs one API key to discover and call LLM, image, video, audio, or 3D models, inspect model specs, run generation tasks, track outputs, check balance, or find SkillHub skills without hand-writing provider-specific API calls.
+
+Best-fit tasks:
+  - generate or edit images, videos, audio, speech, music, or 3D assets
+  - choose a model when the user describes a multimodal task but no model ID is known
+  - inspect required parameters before calling a model
+  - submit a generation task and return result URLs or JSON
+  - find or install a task skill from SkillHub
+  - diagnose authentication, balance, task status, or output issues
+
+Agent path:
+  seacloud auth status
+  seacloud account balance --output json
+  seacloud models list --output json
+  seacloud models spec <model_id> --output json
+  seacloud run <model_id> --param key=value --output json
+  seacloud task status <task_id> --output json
+  seacloud skills find "<task>"`,
 	Version: buildinfo.Version,
 }
 
@@ -27,7 +44,7 @@ func Execute() {
 }
 
 func init() {
-	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Preview the operation without credentials or state changes when the command supports it")
+	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Print what would be executed without making changes")
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(accountCmd)
 	rootCmd.AddCommand(modelsCmd)

@@ -13,7 +13,8 @@ import (
 
 var authCmd = &cobra.Command{
 	Use:   "auth",
-	Short: "Manage authentication",
+	Short: "Manage credentials for SeaCloud model and SkillHub access",
+	Long:  "Manage SeaCloud credentials used for model calls",
 }
 
 var authLoginCmd = &cobra.Command{
@@ -61,7 +62,8 @@ var authLoginCmd = &cobra.Command{
 
 var authStatusCmd = &cobra.Command{
 	Use:   "status",
-	Short: "Show current authentication status",
+	Short: "Show whether SeaCloud credentials are configured and usable",
+	Long:  "Show whether SeaCloud credentials are configured and usable.",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {

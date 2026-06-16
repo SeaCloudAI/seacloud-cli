@@ -14,7 +14,10 @@ var taskStatusOutput string
 
 var taskCmd = &cobra.Command{
 	Use:   "task",
-	Short: "Manage generation tasks",
+	Short: "Check generation task status and outputs",
+	Long: `Manage SeaCloud generation tasks.
+
+Use this after an async model run returns a task ID.`,
 }
 
 var taskStatusCmd = &cobra.Command{

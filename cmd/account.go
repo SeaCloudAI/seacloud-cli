@@ -17,12 +17,24 @@ var accountBalanceOutput string
 
 var accountCmd = &cobra.Command{
 	Use:   "account",
-	Short: "Manage account information",
+	Short: "Check balance and billing readiness",
+	Long: `Manage SeaCloud account balance checks for model execution.
+
+Use this when a model call may require paid credits, when a run fails after valid authentication, or when the user asks about credits or billing.`,
 }
 
 var accountBalanceCmd = &cobra.Command{
 	Use:   "balance",
-	Short: "Show current account balance",
+	Short: "Show current account balance and currency",
+	Long: `Show the current SeaCloud account balance.
+
+Use "--output json" when an agent needs structured balance data before running or retrying paid model generation.
+
+Output:
+  Default: Balance: $128.50
+  JSON:    {"balance":128.50,"currency":"USD","top_up_url":"https://cloud.seaart.ai/settings/credits"}`,
+	Example: `  seacloud account balance
+  seacloud account balance --output json`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if err := validateOutputFormat("--output", accountBalanceOutput, "json"); err != nil {
 			return err
@@ -51,7 +63,7 @@ type accountBalanceJSON struct {
 }
 
 func init() {
-	accountBalanceCmd.Flags().StringVar(&accountBalanceOutput, "output", "", "Output format (json)")
+	accountBalanceCmd.Flags().StringVar(&accountBalanceOutput, "output", "", "Output format: json")
 	accountCmd.AddCommand(accountBalanceCmd)
 }
 

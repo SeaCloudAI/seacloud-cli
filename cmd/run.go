@@ -22,7 +22,7 @@ var (
 
 var runCmd = &cobra.Command{
 	Use:   "run <model_id>",
-	Short: "Run a model and wait for the result",
+	Short: "Run a model and wait for result URLs or JSON",
 	Long: `Submit a generation request and poll until the output is ready.
 
 Parameters are passed as --param key=value pairs (repeatable).

@@ -6,8 +6,10 @@ import (
 
 var skillsCmd = &cobra.Command{
 	Use:   "skills",
-	Short: "Manage agent skills from SkillHub",
-	Long:  "Search, install, and manage agent skills from SeaCloud SkillHub",
+	Short: "Search, install, and manage SkillHub skills",
+	Long: `Search, install, and manage agent skills from SeaCloud SkillHub.
+
+Use SkillHub when the user task needs a specialized workflow the current agent does not already have, such as creative production, media processing, document extraction, or model orchestration.`,
 }
 
 func init() {

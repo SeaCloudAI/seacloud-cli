@@ -142,6 +142,9 @@ func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, re
 			if status.Error != nil && status.Error.Message != "" {
 				reason = status.Error.Message
 			}
+			if clierrors.IsInsufficientBalance(fmt.Errorf("%s", reason)) {
+				return nil, clierrors.ErrInsufficientBalance()
+			}
 			return nil, clierrors.ErrTaskFailed(requestID, reason)
 		}
 		time.Sleep(5 * time.Second)
@@ -173,6 +176,9 @@ func runWithLegacySpec(apiKey, modelID, resolvedModelID string, raw map[string]s
 			reason := "unknown error"
 			if task.Error != nil {
 				reason = task.Error.Message
+			}
+			if clierrors.IsInsufficientBalance(fmt.Errorf("%s", reason)) {
+				return clierrors.ErrInsufficientBalance()
 			}
 			return clierrors.ErrTaskFailed(resp.ID, reason)
 		}

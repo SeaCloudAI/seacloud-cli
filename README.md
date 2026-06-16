@@ -100,6 +100,13 @@ seacloud auth login
 seacloud auth status
 ```
 
+### Check account balance
+
+```bash
+seacloud account balance
+seacloud account balance --output json
+```
+
 ### Browse models
 
 ```bash
@@ -170,6 +177,13 @@ seacloud auth login
 seacloud auth status
 seacloud auth logout
 seacloud auth set-key <api-key>
+```
+
+### `seacloud account`
+
+```bash
+seacloud account balance
+seacloud account balance --output json
 ```
 
 ### `seacloud models`

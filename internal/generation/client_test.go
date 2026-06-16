@@ -1,10 +1,12 @@
 package generation
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
 
@@ -83,5 +85,28 @@ func TestGetTaskPrefersGatewayURLOverBuildProxyBase(t *testing.T) {
 	}
 	if task.ID != "task-123" {
 		t.Fatalf("expected task id %q, got %q", "task-123", task.ID)
+	}
+}
+
+func TestSubmitPreservesInsufficientBalanceErrorCode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		_, _ = w.Write([]byte(`{"status":{"code":402,"message":"Insufficient credits","error_code":40201},"data":null}`))
+	}))
+	defer server.Close()
+
+	_, err := NewClient("api-key").Submit(server.URL, "gpt_image_1", map[string]any{"prompt": "x"})
+	if err == nil {
+		t.Fatal("expected submit error")
+	}
+	var apiErr *clierrors.APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if apiErr.ErrorCode != 40201 || apiErr.Message != "Insufficient credits" {
+		t.Fatalf("unexpected APIError: %#v", apiErr)
+	}
+	if !clierrors.IsInsufficientBalance(err) {
+		t.Fatalf("expected insufficient balance classification for %v", err)
 	}
 }

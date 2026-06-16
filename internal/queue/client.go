@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
@@ -160,7 +161,7 @@ func (c *Client) do(endpoint contracts.Endpoint, body []byte, out any) error {
 		return err
 	}
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+		return clierrors.NewAPIError(resp.StatusCode, respBody)
 	}
 	return json.Unmarshal(respBody, out)
 }

@@ -12,6 +12,7 @@ SEACLOUD_FOLKOS_PROXY_URL ?=
 LDFLAGS := -s -w \
 	-X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version=$(VERSION) \
 	-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=$(SEACLOUD_BASE_URL) \
+	-X github.com/SeaCloudAI/seacloud-cli/internal/account.BaseURL=$(SEACLOUD_BASE_URL) \
 	-X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL=$(SEACLOUD_MODELS_URL) \
 	-X github.com/SeaCloudAI/seacloud-cli/internal/contracts.BaseURL=$(SEACLOUD_MODELS_URL) \
 	-X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL=$(SEACLOUD_GENERATION_URL) \

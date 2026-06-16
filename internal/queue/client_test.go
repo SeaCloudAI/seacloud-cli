@@ -3,12 +3,14 @@ package queue
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 )
@@ -152,6 +154,31 @@ func TestSubmitDoesNotRetryTransientRequestErrors(t *testing.T) {
 	}
 	if attempts != 1 {
 		t.Fatalf("submit must not retry because it can create duplicate tasks, got %d attempts", attempts)
+	}
+}
+
+func TestSubmitPreservesInsufficientBalanceErrorCode(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		_, _ = w.Write([]byte(`{"status":{"code":402,"message":"Insufficient credits","error_code":40201},"data":null}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("SEACLOUD_GENERATION_URL", server.URL)
+	BaseURL = ""
+	_, err := NewClient("api-key").Submit(queueContract(), map[string]any{"prompt": "A red apple"})
+	if err == nil {
+		t.Fatal("expected submit error")
+	}
+	var apiErr *clierrors.APIError
+	if !errors.As(err, &apiErr) {
+		t.Fatalf("expected APIError, got %T: %v", err, err)
+	}
+	if apiErr.ErrorCode != 40201 || apiErr.Message != "Insufficient credits" {
+		t.Fatalf("unexpected APIError: %#v", apiErr)
+	}
+	if !clierrors.IsInsufficientBalance(err) {
+		t.Fatalf("expected insufficient balance classification for %v", err)
 	}
 }
 

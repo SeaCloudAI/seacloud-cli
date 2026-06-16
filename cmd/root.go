@@ -29,6 +29,7 @@ func Execute() {
 func init() {
 	rootCmd.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "Preview the operation without credentials or state changes when the command supports it")
 	rootCmd.AddCommand(authCmd)
+	rootCmd.AddCommand(accountCmd)
 	rootCmd.AddCommand(modelsCmd)
 	rootCmd.AddCommand(imagesCmd)
 	rootCmd.AddCommand(runCmd)

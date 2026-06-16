@@ -200,6 +200,33 @@ func TestRunRejectsPlaceholderPrerequisiteBeforeSubmit(t *testing.T) {
 	}
 }
 
+func TestRunQueueInsufficientBalanceUsesBalanceHint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/skill/model-contracts/gpt_image_1":
+			writeContractResponse(t, w, r)
+		case "/model/v1/queue/gpt_image_1":
+			w.WriteHeader(http.StatusPaymentRequired)
+			_, _ = w.Write([]byte(`{"status":{"code":402,"message":"Insufficient credits","error_code":40201},"data":null}`))
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+	setupRunCommandTest(t, server.URL)
+	_, _, err := executeRoot(t, "run", "gpt_image_1", "--param", "prompt=A red apple")
+	if err == nil {
+		t.Fatal("expected run error")
+	}
+	if got := err.Error(); !strings.Contains(got, "insufficient balance") ||
+		!strings.Contains(got, "seacloud account balance") ||
+		!strings.Contains(got, "https://cloud.seaart.ai/settings/credits") ||
+		strings.Contains(got, "auth status") {
+		t.Fatalf("unexpected insufficient balance error: %q", got)
+	}
+}
+
 func writeContractResponse(t *testing.T, w http.ResponseWriter, r *http.Request) {
 	t.Helper()
 	if got := r.URL.Path; got != "/api/v1/skill/model-contracts/gpt_image_1" {

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -55,9 +54,7 @@ func printQueueTaskStatus(task *queue.Task) error {
 		return nil
 	}
 	if taskStatusOutput == "json" {
-		b, _ := json.MarshalIndent(task, "", "  ")
-		fmt.Println(string(b))
-		return nil
+		return printJSON(task)
 	}
 	fmt.Printf("Task:   %s\n", task.ID)
 	fmt.Printf("Status: %s\n", task.Status)

@@ -185,9 +185,7 @@ func printGenerationTask(task *generation.TaskStatus) error {
 		return nil
 	}
 	if runOutput == "json" {
-		b, _ := json.MarshalIndent(task, "", "  ")
-		fmt.Println(string(b))
-		return nil
+		return printJSON(task)
 	}
 	fmt.Printf("Status: %s\n", task.Status)
 	for _, group := range task.Output {
@@ -211,9 +209,7 @@ func printQueueTask(task *queue.Task) error {
 		return nil
 	}
 	if runOutput == "json" {
-		b, _ := json.MarshalIndent(task, "", "  ")
-		fmt.Println(string(b))
-		return nil
+		return printJSON(task)
 	}
 	fmt.Printf("Status: %s\n", task.Status)
 	for _, u := range task.URLs() {

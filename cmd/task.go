@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
@@ -63,9 +62,7 @@ Exit codes:
 		}
 
 		if taskStatusOutput == "json" {
-			b, _ := json.MarshalIndent(task, "", "  ")
-			fmt.Println(string(b))
-			return nil
+			return printJSON(task)
 		}
 
 		// Human-readable

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -60,9 +59,7 @@ Pagination fields:
 		}
 
 		if modelsListOutput == "json" {
-			b, _ := json.MarshalIndent(result, "", "  ")
-			fmt.Println(string(b))
-			return nil
+			return printJSON(result)
 		}
 
 		if modelsListOutput == "id" {
@@ -136,9 +133,7 @@ func printModelContractSpec(modelID string) error {
 		return err
 	}
 	if modelsSpecOutput == "json" {
-		b, _ := json.MarshalIndent(contract, "", "  ")
-		fmt.Println(string(b))
-		return nil
+		return printJSON(contract)
 	}
 	fmt.Printf("Model: %s\n", contract.ModelID)
 	fmt.Printf("Protocol: %s\n", contract.Protocol)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -135,7 +134,5 @@ func printAsyncSubmission(submission asyncSubmission) error {
 		fmt.Println(submission.TaskID)
 		return nil
 	}
-	b, _ := json.MarshalIndent(submission, "", "  ")
-	fmt.Println(string(b))
-	return nil
+	return printJSON(submission)
 }

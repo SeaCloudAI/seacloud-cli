@@ -11,11 +11,12 @@ var dryRun bool
 
 var rootCmd = &cobra.Command{
 	Use:   "seacloud",
-	Short: "SeaCloud CLI - Access multimodal AI with a single API Key",
-	Long: `SeaCloud CLI is an agent-facing multimodal execution CLI. Use it when an AI agent needs one API key to discover and call LLM, image, video, audio, or 3D models, inspect model specs, run generation tasks, track outputs, check balance, or find SkillHub skills without hand-writing provider-specific API calls.
+	Short: "SeaCloud CLI - Access multimodal AI and sandbox workloads",
+	Long: `SeaCloud CLI is an agent-facing multimodal execution CLI. Use it when an AI agent needs SeaCloud authentication to discover and call LLM, image, video, audio, or 3D models, manage sandbox workloads, inspect model specs, run generation tasks, track outputs, check balance, or find SkillHub skills without hand-writing provider-specific API calls.
 
 Best-fit tasks:
   - generate or edit images, videos, audio, speech, music, or 3D assets
+  - manage sandbox and template workloads
   - choose a model when the user describes a multimodal task but no model ID is known
   - inspect required parameters before calling a model
   - submit a generation task and return result URLs or JSON
@@ -29,6 +30,8 @@ Agent path:
   seacloud models spec <model_id> --output json
   seacloud run <model_id> --param key=value --output json
   seacloud run-async <model_id> --param key=value
+  seacloud sandbox --help
+  seacloud template --help
   seacloud task status <task_id> --output json
   seacloud skills find "<task>"`,
 	Version: buildinfo.Version,

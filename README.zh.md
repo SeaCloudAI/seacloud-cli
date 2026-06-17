@@ -311,8 +311,9 @@ seacloud version
 - sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
-- 使用 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL` 配置沙箱网关 API 根地址；如果填的是 `https://sandbox-gateway.cloud.seaart.ai` 这种网关根地址，CLI 会自动补 `/api/v1`。
-- sandbox/template 命令会从 SeaCloud 本地配置、`SEACLOUD_API_KEY`，或 E2B 兼容别名 `E2B_API_KEY` / `E2B_ACCESS_TOKEN` 读取 API key。
+- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为你的代理服务根地址。
+- sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
+- 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。

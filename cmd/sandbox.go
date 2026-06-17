@@ -1063,9 +1063,8 @@ func newSandboxClient() (*sandboxapi.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg.APIKey = firstNonEmpty(cfg.APIKey, os.Getenv("SEACLOUD_API_KEY"), os.Getenv("E2B_API_KEY"), os.Getenv("E2B_ACCESS_TOKEN"))
-	if cfg.APIKey == "" {
-		return nil, clierrors.ErrNoAPIKey()
+	if strings.TrimSpace(cfg.AuthToken) == "" {
+		return nil, clierrors.ErrNotLoggedIn()
 	}
 	return sandboxapi.NewClientFromConfig(cfg, sandboxapi.Options{
 		BaseURL:     sandboxOpts.baseURL,
@@ -1522,7 +1521,7 @@ func boolPtrIfTrue(value bool) *bool {
 }
 
 func init() {
-	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: SEACLOUD_SANDBOX_URL)")
+	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/v1)")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.namespaceID, "namespace", "", "Sandbox namespace ID")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.userID, "user-id", "", "User ID header for sandbox APIs")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.projectID, "project-id", "", "Project/team ID header for sandbox APIs")

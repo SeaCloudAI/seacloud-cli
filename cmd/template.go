@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -236,18 +237,12 @@ build request without creating or updating a template.`,
 		if err != nil {
 			return err
 		}
-		return withSandboxSDKEnv(client, func() error {
-			var info *sandboxgo.TemplateBuildInfo
-			if templateBuildOpts.noWait {
-				info, err = sandboxgo.BuildTemplateInBackground(cmd.Context(), template, name, opts)
-			} else {
-				info, err = sandboxgo.BuildTemplate(cmd.Context(), template, name, opts)
-			}
-			if err != nil {
-				return err
-			}
-			return printTemplateBuildInfo(info)
-		})
+		opts.Wait = boolPtr(!templateBuildOpts.noWait)
+		info, err := buildTemplateWithClient(cmd.Context(), client, template, name, opts)
+		if err != nil {
+			return err
+		}
+		return printTemplateBuildInfo(info)
 	},
 }
 
@@ -539,28 +534,214 @@ func resolveTemplateID(ctx context.Context, client *sandboxapi.Client, ref strin
 	return resolved.TemplateID, nil
 }
 
-func withSandboxSDKEnv(client *sandboxapi.Client, fn func() error) error {
-	originalBaseURL, hadBaseURL := os.LookupEnv("SEACLOUD_BASE_URL")
-	originalAPIKey, hadAPIKey := os.LookupEnv("SEACLOUD_API_KEY")
-	_ = os.Setenv("SEACLOUD_BASE_URL", client.BaseURL())
-	_ = os.Setenv("SEACLOUD_API_KEY", client.APIKey())
-	defer func() {
-		restoreEnv("SEACLOUD_BASE_URL", originalBaseURL, hadBaseURL)
-		restoreEnv("SEACLOUD_API_KEY", originalAPIKey, hadAPIKey)
-	}()
-	return fn()
-}
-
-func restoreEnv(key, value string, ok bool) {
-	if ok {
-		_ = os.Setenv(key, value)
-		return
-	}
-	_ = os.Unsetenv(key)
-}
-
 func templateOutputJSON() bool {
 	return templateOpts.output == "json" || sandboxOpts.output == "json"
+}
+
+func buildTemplateWithClient(ctx context.Context, client *sandboxapi.Client, template *sandboxgo.Template, name string, opts *sandboxgo.TemplateBuildOptions) (*sandboxgo.TemplateBuildInfo, error) {
+	if client == nil {
+		return nil, fmt.Errorf("sandbox client is required")
+	}
+	if template == nil {
+		return nil, fmt.Errorf("sandbox template is required")
+	}
+	if opts == nil {
+		opts = &sandboxgo.TemplateBuildOptions{}
+	}
+	templateName, parsedTags, err := parseTemplateNameForCLI(name)
+	if err != nil {
+		return nil, err
+	}
+	tags := dedupeTemplateTags(append(parsedTags, opts.Tags...))
+	created, err := client.Build.CreateTemplate(ctx, &build.TemplateCreateRequest{
+		Name:       templateName,
+		Tags:       tags,
+		CPUCount:   opts.CPUCount,
+		MemoryMB:   opts.MemoryMB,
+		Extensions: templateBuildExtensions(opts),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	buildID := "build-" + strconv.FormatInt(time.Now().UTC().UnixNano(), 16)
+	if opts.OnBuildLog != nil {
+		opts.OnBuildLog(sandboxgo.LogEntry{Timestamp: time.Now().UTC(), Level: "info", Message: "Starting build " + buildID})
+	}
+	if _, err := client.Build.CreateBuild(ctx, created.TemplateID, buildID, template.Request()); err != nil {
+		return nil, err
+	}
+	wait := true
+	if opts.Wait != nil {
+		wait = *opts.Wait
+	}
+	if !wait {
+		templateResp, err := client.Build.GetTemplate(ctx, created.TemplateID, nil)
+		if err != nil {
+			return nil, err
+		}
+		return &sandboxgo.TemplateBuildInfo{
+			TemplateID: created.TemplateID,
+			BuildID:    buildID,
+			Name:       templateName,
+			Tags:       tags,
+			Alias:      templateName,
+			Status:     "building",
+			Template:   templateResp,
+		}, nil
+	}
+
+	pollInterval := opts.PollInterval
+	if pollInterval <= 0 {
+		pollInterval = time.Second
+	}
+	logsOffset := 0
+	var status *build.BuildStatusResponse
+	for {
+		status, err = client.Build.GetBuildStatus(ctx, created.TemplateID, buildID, &build.BuildStatusParams{
+			LogsOffset: &logsOffset,
+			Limit:      intPtr(100),
+		})
+		if err != nil {
+			return nil, err
+		}
+		logsOffset += len(status.LogEntries)
+		if opts.OnBuildLog != nil {
+			for _, entry := range status.LogEntries {
+				opts.OnBuildLog(sandboxgo.LogEntry{
+					Timestamp: entry.Timestamp,
+					Level:     normalizeBuildLogLevel(entry.Level),
+					Message:   strings.TrimPrefix(entry.Step+": "+entry.Message, ": "),
+				})
+			}
+		}
+		if isTerminalBuildStatus(status.Status) {
+			break
+		}
+		timer := time.NewTimer(pollInterval)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
+	if opts.OnBuildLog != nil {
+		opts.OnBuildLog(sandboxgo.LogEntry{Timestamp: time.Now().UTC(), Level: "info", Message: "Build " + buildID + " finished with status " + status.Status})
+	}
+	templateResp, err := client.Build.GetTemplate(ctx, created.TemplateID, nil)
+	if err != nil {
+		return nil, err
+	}
+	buildResp, err := client.Build.GetBuild(ctx, created.TemplateID, buildID)
+	if err != nil {
+		return nil, err
+	}
+	return &sandboxgo.TemplateBuildInfo{
+		TemplateID: created.TemplateID,
+		BuildID:    buildID,
+		Name:       templateName,
+		Tags:       tags,
+		Alias:      templateName,
+		Status:     status.Status,
+		Template:   templateResp,
+		Build:      buildResp,
+	}, nil
+}
+
+func parseTemplateNameForCLI(name string) (string, []string, error) {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		return "", nil, cliMissingParam("name", "Use: seacloud template build <name>")
+	}
+	lastColon := strings.LastIndex(trimmed, ":")
+	if lastColon < 0 {
+		return trimmed, nil, nil
+	}
+	baseName := strings.TrimSpace(trimmed[:lastColon])
+	tag := strings.TrimSpace(trimmed[lastColon+1:])
+	if baseName == "" || tag == "" {
+		return "", nil, cliParamError("name", "must be name or name:tag", "Use: seacloud template build demo:v1 --image python:3.13")
+	}
+	return baseName, []string{tag}, nil
+}
+
+func dedupeTemplateTags(values []string) []string {
+	seen := map[string]struct{}{}
+	tags := make([]string, 0, len(values))
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			continue
+		}
+		if _, ok := seen[trimmed]; ok {
+			continue
+		}
+		seen[trimmed] = struct{}{}
+		tags = append(tags, trimmed)
+	}
+	return tags
+}
+
+func templateBuildExtensions(opts *sandboxgo.TemplateBuildOptions) *build.PublicTemplateExtensions {
+	if opts == nil {
+		return nil
+	}
+	extensions := &build.PublicTemplateExtensions{}
+	hasExtensions := false
+	if strings.TrimSpace(opts.BaseTemplateID) != "" {
+		extensions.BaseTemplateID = strings.TrimSpace(opts.BaseTemplateID)
+		hasExtensions = true
+	}
+	if strings.TrimSpace(opts.Visibility) != "" {
+		extensions.Visibility = strings.TrimSpace(opts.Visibility)
+		hasExtensions = true
+	}
+	if len(opts.Envs) > 0 {
+		extensions.Envs = make(map[string]string, len(opts.Envs))
+		for k, v := range opts.Envs {
+			extensions.Envs[k] = v
+		}
+		hasExtensions = true
+	}
+	if len(opts.VolumeMounts) > 0 {
+		extensions.VolumeMounts = append([]build.TemplateVolumeMount(nil), opts.VolumeMounts...)
+		hasExtensions = true
+	}
+	if strings.TrimSpace(opts.Workdir) != "" {
+		extensions.Workdir = strings.TrimSpace(opts.Workdir)
+		hasExtensions = true
+	}
+	if !hasExtensions {
+		return nil
+	}
+	return extensions
+}
+
+func isTerminalBuildStatus(status string) bool {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "ready", "failed", "error", "cancelled":
+		return true
+	default:
+		return false
+	}
+}
+
+func normalizeBuildLogLevel(level string) string {
+	switch strings.ToLower(strings.TrimSpace(level)) {
+	case "debug", "warn", "error":
+		return strings.ToLower(strings.TrimSpace(level))
+	default:
+		return "info"
+	}
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func intPtr(value int) *int {
+	return &value
 }
 
 func writeTemplateProject(dir, language, name string, force, migrate bool) error {
@@ -704,7 +885,7 @@ seacloud template build %s
 
 func init() {
 	templateCmd.PersistentFlags().StringVar(&templateOpts.output, "format", "", "Output format: json or table (default table)")
-	templateCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: SEACLOUD_SANDBOX_URL)")
+	templateCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/v1)")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.namespaceID, "namespace", "", "Sandbox namespace ID")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.userID, "user-id", "", "User ID header for sandbox APIs")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.projectID, "project-id", "", "Project/team ID header for sandbox APIs")

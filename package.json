@@ -13,11 +13,11 @@
   "files": [
     "assets",
     "npm-bundles",
+    "scripts/archive-extract.js",
     "scripts/gateway-skill-deploy.js",
     "scripts/postinstall.js",
     "scripts/seacloud.js",
-    "scripts/seacloud-skills.js",
-    "vendor"
+    "scripts/seacloud-skills.js"
   ],
   "scripts": {
     "prepare:npm-bundles": "node ./scripts/prepare-npm-bundles.js",
@@ -25,10 +25,6 @@
   },
   "engines": {
     "node": ">=18"
-  },
-  "dependencies": {
-    "adm-zip": "^0.5.16",
-    "tar": "^7.4.3"
   },
   "repository": {
     "type": "git",

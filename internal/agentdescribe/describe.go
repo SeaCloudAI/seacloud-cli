@@ -51,8 +51,9 @@ func Build(cliVersion string) Description {
 		FirstSteps: []CommandExample{
 			{Command: "seacloud --version", Purpose: "Confirm the CLI is installed and visible on PATH."},
 			{Command: "seacloud auth status", Purpose: "Check whether credentials are available."},
-			{Command: "seacloud auth login", Purpose: "Start browser-based login when credentials are missing."},
-			{Command: "seacloud auth set-key <api-key>", Purpose: "Configure an API key when the user provides one."},
+			{Command: "seacloud account balance --output json", Purpose: "Check available credits before running paid model tasks."},
+			{Command: "seacloud auth login", Purpose: "Start browser-based login for sandbox/template commands or a full login session."},
+			{Command: "seacloud auth set-key <api-key>", Purpose: "Configure an API key for model execution when the user provides one."},
 		},
 		Capabilities: []Capability{
 			{
@@ -61,7 +62,15 @@ func Build(cliVersion string) Description {
 				Commands: []CommandExample{
 					{Command: "seacloud auth status", Purpose: "Check login state."},
 					{Command: "seacloud auth login", Purpose: "Start browser-based login."},
-					{Command: "seacloud auth set-key <api-key>", Purpose: "Store an API key."},
+					{Command: "seacloud auth set-key <api-key>", Purpose: "Store an API key for model execution."},
+				},
+			},
+			{
+				ID:      "account",
+				Summary: "Check account balance and billing readiness before running paid model tasks.",
+				Commands: []CommandExample{
+					{Command: "seacloud account balance", Purpose: "Show the current account balance."},
+					{Command: "seacloud account balance --output json", Purpose: "Print structured balance data for agent diagnostics."},
 				},
 			},
 			{
@@ -113,14 +122,14 @@ func Build(cliVersion string) Description {
 			},
 			{
 				ID:      "sandbox",
-				Summary: "Manage SeaCloud sandbox workloads. Use command help for detailed subcommands.",
+				Summary: "Manage SeaCloud sandbox workloads after seacloud auth login. Use command help for detailed subcommands.",
 				Commands: []CommandExample{
 					{Command: "seacloud sandbox --help", Purpose: "Inspect sandbox commands and flags."},
 				},
 			},
 			{
 				ID:      "template",
-				Summary: "Manage SeaCloud templates. Use command help for detailed subcommands.",
+				Summary: "Manage SeaCloud templates after seacloud auth login. Use command help for detailed subcommands.",
 				Commands: []CommandExample{
 					{Command: "seacloud template --help", Purpose: "Inspect template commands and flags."},
 				},
@@ -133,6 +142,7 @@ func Build(cliVersion string) Description {
 				Summary: "Inspect credentials, model availability, and parameters before submitting a real task.",
 				Steps: []CommandExample{
 					{Command: "seacloud auth status", Purpose: "Check credentials."},
+					{Command: "seacloud account balance --output json", Purpose: "Check available credits before submitting paid work."},
 					{Command: "seacloud models list", Purpose: "Find a candidate model."},
 					{Command: "seacloud models spec <model_id>", Purpose: "Inspect required parameters."},
 					{Command: "seacloud --dry-run run <model_id> --param key=value", Purpose: "Validate request shape."},
@@ -177,9 +187,10 @@ func Build(cliVersion string) Description {
 		},
 		Recovery: []RecoveryCase{
 			{Problem: "CLI is missing", Actions: []string{"Run seacloud --version.", "If missing, install with npm install -g @seacloudai/seacloud-cli."}},
-			{Problem: "Credentials are missing or expired", Actions: []string{"Run seacloud auth status.", "Use seacloud auth login or seacloud auth set-key <api-key>."}},
+			{Problem: "Model execution credentials are missing", Actions: []string{"Run seacloud auth status.", "Use seacloud auth set-key <api-key> when the user provides a model API key, or use seacloud auth login for a full login session."}},
+			{Problem: "Sandbox or template login is missing", Actions: []string{"Run seacloud auth status.", "Use seacloud auth login; seacloud auth set-key <api-key> is not enough for sandbox/template commands."}},
 			{Problem: "Parameter validation fails", Actions: []string{"Run seacloud models spec <model_id>.", "Fix --param values, then retry with --dry-run before submitting."}},
-			{Problem: "Balance is insufficient", Actions: []string{"Ask the user to recharge or provide valid credentials.", "Do not retry many generation tasks automatically."}},
+			{Problem: "Balance is insufficient", Actions: []string{"Run seacloud account balance.", "Top up at: https://cloud.seaart.ai/settings/credits.", "Do not retry login or resubmit generation tasks until credits are available."}},
 			{Problem: "Task times out", Actions: []string{"Use seacloud task status <task_id> --output json.", "Do not submit the same generation request again unless the user asks."}},
 			{Problem: "SkillHub search fails", Actions: []string{"Show the concrete CLI error.", "Try broader English keywords or seacloud skills list --sort stars."}},
 		},

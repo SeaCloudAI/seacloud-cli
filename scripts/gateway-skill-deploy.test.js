@@ -111,6 +111,16 @@ test("deployGatewaySkill overwrites older canonical version", () => {
   assert.equal(readGatewaySkillVersion(path.join(target, "SKILL.md")), "0.0.18");
 });
 
+test("bundled gateway skill stays lightweight and points to dynamic guide", () => {
+  const skillPath = path.join(__dirname, "..", "assets", "gateway-skill", "seacloud", "SKILL.md");
+  const content = fs.readFileSync(skillPath, "utf8");
+
+  assert.match(content, /^version:\s*[0-9]+\.[0-9]+\.[0-9]+$/m);
+  assert.match(content, /^allowed-tools:\s*Bash\(seacloud:\*\)/m);
+  assert.match(content, /seacloud agent describe/);
+  assert.match(content, /seacloud account balance/);
+});
+
 function createWorkspace(version) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "seacloud-skill-deploy-test-"));
   const rootDir = path.join(base, "package");

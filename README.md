@@ -191,6 +191,12 @@ seacloud auth logout
 seacloud auth set-key <api-key>
 ```
 
+### `seacloud agent`
+
+```bash
+seacloud agent describe
+```
+
 ### `seacloud account`
 
 ```bash
@@ -328,7 +334,7 @@ seacloud version
 - Use `--format json` on sandbox/template commands for E2B-compatible output flag naming.
 - Use `--output url` on task commands to print only result URLs.
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
-- Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your proxy service when using `seacloud images generate` or sync image models through `seacloud run`.
+- Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
 - Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` only when you need a non-default sandbox API root. The default is `https://cloud.seaart.ai/api/v1`.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
@@ -358,14 +364,26 @@ If you maintain releases manually, the repository includes:
 
 ```text
 seacloud-cli/
-├── cmd/                # CLI command definitions
-├── internal/auth/      # Auth client and login flow
-├── internal/models/    # Model list and spec APIs
-├── internal/generation/# Task submit and polling
-├── internal/skillhub/  # SkillHub client and install logic
-├── package.json        # npm package manifest
-├── scripts/            # Build, release, and npm wrapper scripts
-└── skills/             # Built-in skill definitions
+├── cmd/                     # Cobra command definitions and command tests
+├── internal/account/        # Account balance API client
+├── internal/agentdescribe/  # Agent capability descriptions
+├── internal/auth/           # Auth client and login flow
+├── internal/buildinfo/      # Version and build metadata
+├── internal/clierrors/      # Actionable CLI error formatting
+├── internal/config/         # Local config, auth, and managed runtime helpers
+├── internal/contracts/      # model-contract.v1 fetch, cache, and validation
+├── internal/generation/     # Generation response parsing and legacy helpers
+├── internal/modelendpoints/ # Model/spec endpoint defaults and overrides
+├── internal/models/         # Model list, aliases, and spec lookup
+├── internal/queue/          # Queue submit, polling, and result clients
+├── internal/sandbox/        # Sandbox and template API client
+├── internal/skillhub/       # SkillHub search, install, and config logic
+├── internal/taskcache/      # Local queue task metadata cache
+├── assets/                  # README banners and Gateway Skill source
+├── docs/                    # Design notes and migration plans
+├── package.json             # npm package manifest
+├── scripts/                 # Build, release, Gateway Skill, and npm wrapper scripts
+└── skills/                  # Built-in skill definitions
 ```
 
 ## Contributing

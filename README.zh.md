@@ -177,6 +177,12 @@ seacloud auth logout
 seacloud auth set-key <api-key>
 ```
 
+### `seacloud agent`
+
+```bash
+seacloud agent describe
+```
+
 ### `seacloud account`
 
 ```bash
@@ -313,7 +319,7 @@ seacloud version
 - sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
-- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为你的代理服务根地址。
+- 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
 - 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
@@ -343,14 +349,26 @@ npm 包在安装时会自动下载当前平台对应的预编译二进制。
 
 ```text
 seacloud-cli/
-├── cmd/                 # CLI 命令定义
-├── internal/auth/       # 认证客户端与登录流程
-├── internal/models/     # 模型列表与模型规格接口
-├── internal/generation/ # 任务提交与轮询
-├── internal/skillhub/   # SkillHub 客户端与安装逻辑
-├── package.json         # npm 包清单
-├── scripts/             # 构建、发版与 npm 包装脚本
-└── skills/              # 内置技能定义
+├── cmd/                     # Cobra 命令定义和命令测试
+├── internal/account/        # 账户余额接口客户端
+├── internal/agentdescribe/  # Agent 能力说明
+├── internal/auth/           # 认证客户端与登录流程
+├── internal/buildinfo/      # 版本与构建元数据
+├── internal/clierrors/      # 可操作错误信息格式化
+├── internal/config/         # 本地配置、认证与托管运行时辅助逻辑
+├── internal/contracts/      # model-contract.v1 拉取、缓存与校验
+├── internal/generation/     # 生成结果解析与旧生成流程辅助逻辑
+├── internal/modelendpoints/ # 模型/规格接口默认地址与覆盖逻辑
+├── internal/models/         # 模型列表、别名与规格查询
+├── internal/queue/          # 队列提交、轮询与结果客户端
+├── internal/sandbox/        # 沙箱与模板接口客户端
+├── internal/skillhub/       # SkillHub 搜索、安装与配置逻辑
+├── internal/taskcache/      # 本地队列任务元数据缓存
+├── assets/                  # README 图片与 Gateway Skill 源文件
+├── docs/                    # 设计说明与迁移计划
+├── package.json             # npm 包清单
+├── scripts/                 # 构建、发版、Gateway Skill 与 npm 包装脚本
+└── skills/                  # 内置技能定义
 ```
 
 ## 参与贡献

@@ -5,8 +5,11 @@
   <h1>SeaCloud CLI</h1>
   <h3>The official CLI for the SeaCloud AI Platform</h3>
   <p>
-    Built for AI agents. Authenticate, browse models, submit multimodal tasks,
-    track task status, and manage SkillHub skills from any agent or terminal.
+    SeaCloud CLI is a multimodal task execution CLI designed specifically for
+    Agents. With SeaCloud authentication, it provides unified access to LLM,
+    image, video, audio, 3D, and other models; supports model search, spec
+    queries, task execution, and result tracking; and helps discover and manage
+    professional skills for creative workflows through SkillHub.
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">

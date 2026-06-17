@@ -11,8 +11,8 @@ var dryRun bool
 
 var rootCmd = &cobra.Command{
 	Use:     "seacloud",
-	Short:   "SeaCloud CLI - Access multimodal AI with a single API Key",
-	Long:    "SeaCloud CLI lets you manage your account, browse models, run multimodal AI services, and manage sandbox workloads via API Key.",
+	Short:   "SeaCloud CLI - Access multimodal AI and sandbox workloads",
+	Long:    "SeaCloud CLI lets you manage your account, browse models, run multimodal AI services, and manage sandbox workloads with SeaCloud authentication.",
 	Version: buildinfo.Version,
 }
 

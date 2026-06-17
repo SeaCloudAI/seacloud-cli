@@ -19,11 +19,11 @@ import (
 const EnvSandboxURL = "SEACLOUD_SANDBOX_URL"
 
 // BaseURL can be overridden at build time via ldflags.
-var BaseURL = "https://sandbox-gateway.cloud.seaart.ai/api/v1"
+var BaseURL = "https://cloud.seaart.ai"
 
 type Options struct {
 	BaseURL     string
-	APIKey      string
+	AuthToken   string
 	NamespaceID string
 	UserID      string
 	ProjectID   string
@@ -41,29 +41,25 @@ func NewClient(opts Options) (*Client, error) {
 	if baseURL == "" {
 		return nil, fmt.Errorf("sandbox base URL not configured: set %s", EnvSandboxURL)
 	}
-	if strings.TrimSpace(opts.APIKey) == "" {
-		return nil, fmt.Errorf("sandbox API key is required")
+	opts.AuthToken = strings.TrimSpace(opts.AuthToken)
+	if opts.AuthToken == "" {
+		return nil, fmt.Errorf("sandbox auth token is required")
 	}
 	timeout := opts.Timeout
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
-	transportOpts := []core.TransportOption{
-		core.WithTimeout(timeout),
-		core.WithNamespaceID(opts.NamespaceID),
-		core.WithUserID(opts.UserID),
-		core.WithProjectID(opts.ProjectID),
-	}
-	controlService, err := control.NewService(baseURL, opts.APIKey, transportOpts...)
+	opts.Timeout = timeout
+	transportOpts := accessTokenTransportOptions(opts)
+	controlService, err := control.NewService(baseURL, opts.AuthToken, transportOpts...)
 	if err != nil {
 		return nil, err
 	}
-	buildService, err := build.NewService(baseURL, opts.APIKey, transportOpts...)
+	buildService, err := build.NewService(baseURL, opts.AuthToken, transportOpts...)
 	if err != nil {
 		return nil, err
 	}
 	opts.BaseURL = baseURL
-	opts.Timeout = timeout
 	return &Client{Control: controlService, Build: buildService, options: opts}, nil
 }
 
@@ -71,7 +67,7 @@ func NewClientFromConfig(cfg *config.Config, opts Options) (*Client, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("config is required")
 	}
-	opts.APIKey = firstNonEmpty(opts.APIKey, cfg.APIKey)
+	opts.AuthToken = firstNonEmpty(opts.AuthToken, cfg.AuthToken)
 	return NewClient(opts)
 }
 
@@ -83,8 +79,12 @@ func (c *Client) BaseURL() string {
 	return c.options.BaseURL
 }
 
-func (c *Client) APIKey() string {
-	return c.options.APIKey
+func (c *Client) AuthToken() string {
+	return c.options.AuthToken
+}
+
+func (c *Client) TransportOptions() []core.TransportOption {
+	return accessTokenTransportOptions(c.options)
 }
 
 func (c *Client) RuntimeFromDetail(s *control.SandboxDetail) (*sandboxgo.Runtime, error) {
@@ -127,7 +127,11 @@ func resolveBaseURL(value string) string {
 
 func normalizeAPIBaseURL(value string) string {
 	value = strings.TrimRight(strings.TrimSpace(value), "/")
-	if value == "" || strings.HasSuffix(value, "/api/v1") || strings.Contains(value, "/api/v1/") {
+	if value == "" ||
+		strings.HasSuffix(value, "/api/v1") ||
+		strings.Contains(value, "/api/v1/") ||
+		strings.HasSuffix(value, "/api/sandbox/v1") ||
+		strings.Contains(value, "/api/sandbox/v1/") {
 		return value
 	}
 	return value + "/api/v1"
@@ -140,4 +144,41 @@ func firstNonEmpty(values ...string) string {
 		}
 	}
 	return ""
+}
+
+func accessTokenTransportOptions(opts Options) []core.TransportOption {
+	return []core.TransportOption{
+		core.WithHTTPClient(accessTokenHTTPClient(opts.AuthToken, opts.Timeout)),
+		core.WithTimeout(opts.Timeout),
+		core.WithNamespaceID(opts.NamespaceID),
+		core.WithUserID(opts.UserID),
+		core.WithProjectID(opts.ProjectID),
+	}
+}
+
+func accessTokenHTTPClient(token string, timeout time.Duration) *http.Client {
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	return &http.Client{
+		Timeout:   timeout,
+		Transport: accessTokenRoundTripper{token: strings.TrimSpace(token), base: http.DefaultTransport},
+	}
+}
+
+type accessTokenRoundTripper struct {
+	token string
+	base  http.RoundTripper
+}
+
+func (t accessTokenRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	base := t.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+	cloned := req.Clone(req.Context())
+	cloned.Header = req.Header.Clone()
+	cloned.Header.Del("X-API-Key")
+	cloned.Header.Set("Authorization", "Bearer "+t.token)
+	return base.RoundTrip(cloned)
 }

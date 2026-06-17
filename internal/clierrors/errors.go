@@ -80,6 +80,10 @@ func IsInsufficientBalance(err error) bool {
 		strings.Contains(text, "insufficient credits")
 }
 
+func IsGenerationBaseURLMissing(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "generation base URL not configured")
+}
+
 func ErrNotLoggedIn() error {
 	return &CLIError{
 		Message: "not logged in",
@@ -188,6 +192,12 @@ func ErrMissingParam(modelID, name string) error {
 func ErrSubmitFailed(err error) error {
 	if IsInsufficientBalance(err) {
 		return ErrInsufficientBalance()
+	}
+	if IsGenerationBaseURLMissing(err) {
+		return &CLIError{
+			Message: fmt.Sprintf("generation request failed: %v", err),
+			Hint:    "Set SEACLOUD_GENERATION_URL=https://cloud.seaart.ai or install a release build with a configured generation endpoint.",
+		}
 	}
 	return &CLIError{
 		Message: fmt.Sprintf("generation request failed: %v", err),

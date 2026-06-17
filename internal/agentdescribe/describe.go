@@ -85,20 +85,20 @@ func Build(cliVersion string) Description {
 				},
 			},
 			{
+				ID:      "run-async",
+				Summary: "Submit a multimodal generation request and return a task ID without waiting.",
+				Commands: []CommandExample{
+					{Command: "seacloud run-async <model_id> --param key=value", Purpose: "Submit and print structured task metadata."},
+					{Command: "seacloud run-async <model_id> --param key=value --output id", Purpose: "Submit and print only the task ID."},
+				},
+			},
+			{
 				ID:      "task",
 				Summary: "Inspect task state without submitting duplicate generation requests.",
 				Commands: []CommandExample{
 					{Command: "seacloud task status <task_id>", Purpose: "Fetch human-readable task status."},
 					{Command: "seacloud task status <task_id> --output json", Purpose: "Fetch structured task status."},
 					{Command: "seacloud task status <task_id> --output url", Purpose: "Print result URLs only."},
-				},
-			},
-			{
-				ID:      "images",
-				Summary: "Generate images through the SeaCloud proxy-backed image API.",
-				Commands: []CommandExample{
-					{Command: "seacloud images generate --prompt \"a blue cat\" --output json", Purpose: "Generate an image and print the full response."},
-					{Command: "seacloud images generate --prompt \"a blue cat\" --output url", Purpose: "Generate an image and print asset URLs."},
 				},
 			},
 			{
@@ -137,6 +137,7 @@ func Build(cliVersion string) Description {
 					{Command: "seacloud models spec <model_id>", Purpose: "Inspect required parameters."},
 					{Command: "seacloud --dry-run run <model_id> --param key=value", Purpose: "Validate request shape."},
 					{Command: "seacloud run <model_id> --param key=value --output json", Purpose: "Submit the task."},
+					{Command: "seacloud run-async <model_id> --param key=value", Purpose: "Submit without waiting when the user wants an async task ID."},
 					{Command: "seacloud task status <task_id> --output json", Purpose: "Check task state without resubmitting."},
 				},
 			},
@@ -156,7 +157,8 @@ func Build(cliVersion string) Description {
 			{
 				Title: "Use structured output when automation needs stable parsing",
 				Details: []string{
-					"Use --output json on models, run, task, and images commands when supported.",
+					"Use --output json on models, run, run-async, and task commands when supported.",
+					"Use --output id on run-async when only the task ID is needed.",
 					"Use --output url when only result URLs are needed.",
 					"Use --format json on sandbox/template commands that expose E2B-compatible output flags.",
 				},
@@ -166,9 +168,8 @@ func Build(cliVersion string) Description {
 			{
 				Title: "Proxy and endpoint rules",
 				Details: []string{
-					"For image generation, prefer model IDs returned by `seacloud models list --type image` unless the user explicitly asks for `images generate` or a `gpt-image-*` sync image model.",
-					"`seacloud images generate` requires `SEACLOUD_FOLKOS_PROXY_URL` unless the binary was built with a proxy base URL.",
-					"`seacloud run gpt-image-*` uses the same sync image proxy path.",
+					"Use `seacloud run <model_id>` to submit and wait for final results.",
+					"Use `seacloud run-async <model_id>` to submit only and return a task ID.",
 					"Model IDs with underscores such as `gpt_image_2` use queue contracts unless explicitly aliased.",
 					"Queue models use `SEACLOUD_GENERATION_URL` and task polling.",
 				},

@@ -18,6 +18,7 @@ func TestAgentDescribePrintsGuide(t *testing.T) {
 		"# SeaCloud CLI Agent Guide",
 		"seacloud models list",
 		"seacloud --dry-run run <model_id> --param key=value",
+		"seacloud run-async <model_id> --param key=value",
 		"seacloud task status <task_id> --output json",
 	} {
 		if !strings.Contains(stdout, text) {

@@ -268,6 +268,7 @@ func setupRunCommandTest(t *testing.T, serviceURL string) {
 	dryRun = false
 	runParams = nil
 	runOutput = ""
+	runAsyncOutput = ""
 	runTimeout = 600
 	runRefresh = false
 	taskStatusOutput = ""

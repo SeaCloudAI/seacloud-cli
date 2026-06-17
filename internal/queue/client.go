@@ -192,6 +192,9 @@ func endpointURL(path string) (string, error) {
 		base = env
 	}
 	if base == "" {
+		base = generation.BaseURL
+	}
+	if base == "" {
 		return "", fmt.Errorf("generation base URL not configured: set SEACLOUD_GENERATION_URL or use absolute contract endpoints")
 	}
 	return config.RewriteURLThroughFolkosProxy(strings.TrimRight(base, "/") + "/" + strings.TrimLeft(path, "/")), nil

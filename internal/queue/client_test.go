@@ -13,6 +13,7 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
+	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
 )
 
 func TestSubmitSendsRawJSONBodyAndReturnsRequestID(t *testing.T) {
@@ -179,6 +180,46 @@ func TestSubmitPreservesInsufficientBalanceErrorCode(t *testing.T) {
 	}
 	if !clierrors.IsInsufficientBalance(err) {
 		t.Fatalf("expected insufficient balance classification for %v", err)
+	}
+}
+
+func TestEndpointURLFallsBackToGenerationBaseURL(t *testing.T) {
+	t.Setenv("SEACLOUD_GENERATION_URL", "")
+	originalQueueBaseURL := BaseURL
+	BaseURL = ""
+	originalGenerationBaseURL := generation.BaseURL
+	generation.BaseURL = "https://cloud.seaart.ai"
+	t.Cleanup(func() {
+		BaseURL = originalQueueBaseURL
+		generation.BaseURL = originalGenerationBaseURL
+	})
+
+	got, err := endpointURL("/model/v1/queue/gpt_image_1")
+	if err != nil {
+		t.Fatalf("endpointURL returned error: %v", err)
+	}
+	if got != "https://cloud.seaart.ai/model/v1/queue/gpt_image_1" {
+		t.Fatalf("unexpected endpoint URL: %q", got)
+	}
+}
+
+func TestEndpointURLPrefersEnvOverBuildBaseURLs(t *testing.T) {
+	t.Setenv("SEACLOUD_GENERATION_URL", "https://env.example.com")
+	originalQueueBaseURL := BaseURL
+	BaseURL = "https://queue-build.example.com"
+	originalGenerationBaseURL := generation.BaseURL
+	generation.BaseURL = "https://generation-build.example.com"
+	t.Cleanup(func() {
+		BaseURL = originalQueueBaseURL
+		generation.BaseURL = originalGenerationBaseURL
+	})
+
+	got, err := endpointURL("/model/v1/queue/gpt_image_1")
+	if err != nil {
+		t.Fatalf("endpointURL returned error: %v", err)
+	}
+	if got != "https://env.example.com/model/v1/queue/gpt_image_1" {
+		t.Fatalf("unexpected endpoint URL: %q", got)
 	}
 }
 

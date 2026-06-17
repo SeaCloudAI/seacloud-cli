@@ -1,6 +1,7 @@
 package clierrors
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -31,6 +32,16 @@ func TestErrSubmitFailedUsesBalanceHint(t *testing.T) {
 	if !strings.Contains(got, "insufficient balance") ||
 		!strings.Contains(got, "seacloud account balance") ||
 		!strings.Contains(got, "https://cloud.seaart.ai/settings/credits") ||
+		strings.Contains(got, "auth status") {
+		t.Fatalf("unexpected submit error: %q", got)
+	}
+}
+
+func TestErrSubmitFailedUsesGenerationEndpointHint(t *testing.T) {
+	err := ErrSubmitFailed(errors.New("generation base URL not configured: set SEACLOUD_GENERATION_URL"))
+	got := err.Error()
+	if !strings.Contains(got, "generation base URL not configured") ||
+		!strings.Contains(got, "SEACLOUD_GENERATION_URL=https://cloud.seaart.ai") ||
 		strings.Contains(got, "auth status") {
 		t.Fatalf("unexpected submit error: %q", got)
 	}

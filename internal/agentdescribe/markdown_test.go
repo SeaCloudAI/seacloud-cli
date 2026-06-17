@@ -35,6 +35,7 @@ func TestRenderMarkdownIncludesStableSectionsAndCommands(t *testing.T) {
 		"seacloud --version",
 		"seacloud models list",
 		"seacloud --dry-run run <model_id> --param key=value",
+		"seacloud run-async <model_id> --param key=value",
 		"seacloud task status <task_id> --output json",
 	} {
 		if !strings.Contains(output, command) {
@@ -48,9 +49,8 @@ func TestRenderMarkdownIncludesProxyEndpointRules(t *testing.T) {
 
 	for _, text := range []string{
 		"### Proxy and endpoint rules",
-		"For image generation, prefer model IDs returned by `seacloud models list --type image` unless the user explicitly asks for `images generate` or a `gpt-image-*` sync image model.",
-		"`seacloud images generate` requires `SEACLOUD_FOLKOS_PROXY_URL` unless the binary was built with a proxy base URL.",
-		"`seacloud run gpt-image-*` uses the same sync image proxy path.",
+		"Use `seacloud run <model_id>` to submit and wait for final results.",
+		"Use `seacloud run-async <model_id>` to submit only and return a task ID.",
 		"Model IDs with underscores such as `gpt_image_2` use queue contracts unless explicitly aliased.",
 		"Queue models use `SEACLOUD_GENERATION_URL` and task polling.",
 	} {

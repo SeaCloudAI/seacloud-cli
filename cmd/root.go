@@ -28,6 +28,7 @@ Agent path:
   seacloud models list --output json
   seacloud models spec <model_id> --output json
   seacloud run <model_id> --param key=value --output json
+  seacloud run-async <model_id> --param key=value
   seacloud task status <task_id> --output json
   seacloud skills find "<task>"`,
 	Version: buildinfo.Version,
@@ -48,8 +49,8 @@ func init() {
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(accountCmd)
 	rootCmd.AddCommand(modelsCmd)
-	rootCmd.AddCommand(imagesCmd)
 	rootCmd.AddCommand(runCmd)
+	rootCmd.AddCommand(runAsyncCmd)
 	rootCmd.AddCommand(taskCmd)
 	rootCmd.AddCommand(skillsCmd)
 	rootCmd.AddCommand(agentCmd)

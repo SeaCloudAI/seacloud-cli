@@ -24,6 +24,7 @@ func TestOptimizedHelpText(t *testing.T) {
 				"sandbox     Manage and interact with sandboxes",
 				"template    Manage sandbox templates",
 				"run         Run a model and wait for result URLs or JSON",
+				"run-async   Submit a model task asynchronously and print the task ID",
 				"Print what would be executed without making changes",
 			},
 		},
@@ -100,6 +101,14 @@ func TestOptimizedHelpText(t *testing.T) {
 			},
 		},
 		{
+			name: "run-async",
+			args: []string{"run-async", "--help"},
+			contains: []string{
+				"Submit a generation request and return immediately after the task is accepted.",
+				"Output format: json (default), id",
+			},
+		},
+		{
 			name: "task",
 			args: []string{"task", "--help"},
 			contains: []string{
@@ -123,6 +132,13 @@ func TestOptimizedHelpText(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestImagesCommandRemoved(t *testing.T) {
+	_, _, err := executeRoot(t, "images", "--help")
+	if err == nil || !strings.Contains(err.Error(), `unknown command "images"`) {
+		t.Fatalf("expected images command to be removed, got %v", err)
 	}
 }
 

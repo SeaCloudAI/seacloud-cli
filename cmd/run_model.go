@@ -13,7 +13,6 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/SeaCloudAI/seacloud-cli/internal/queue"
-	"github.com/SeaCloudAI/seacloud-cli/internal/taskcache"
 )
 
 func executeModelRun(modelID, resolvedModelID string) error {
@@ -80,15 +79,8 @@ func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[s
 func runWithContract(apiKey, modelID string, contract *contracts.ModelContract, raw map[string]string) error {
 	switch {
 	case contract.Protocol == "queue" && contract.BodyMode == "raw_json":
-		raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
-		params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
+		params, err := queueParamsFromContract(modelID, contract, raw)
 		if err != nil {
-			return err
-		}
-		if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
-			return err
-		}
-		if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
 			return err
 		}
 		return runQueueContract(apiKey, contract, params)
@@ -105,15 +97,7 @@ func runQueueContract(apiKey string, contract *contracts.ModelContract, params m
 	if err != nil {
 		return clierrors.ErrSubmitFailed(err)
 	}
-	_ = taskcache.Save(taskcache.Metadata{
-		RequestID:        submitted.ID,
-		ModelID:          contract.ModelID,
-		Protocol:         contract.Protocol,
-		BodyMode:         contract.BodyMode,
-		ContractRevision: contract.Revision,
-		StatusEndpoint:   contract.Endpoints.Status.Path,
-		ResultEndpoint:   contract.Endpoints.Result.Path,
-	})
+	saveQueueSubmission(contract, submitted.ID)
 
 	fmt.Fprintf(os.Stderr, "Task submitted: %s\nWaiting for result...\n", submitted.ID)
 	task, err := pollQueueResult(client, contract, submitted.ID)
@@ -153,15 +137,7 @@ func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, re
 }
 
 func runWithLegacySpec(apiKey, modelID, resolvedModelID string, raw map[string]string) error {
-	spec, err := models.GetSpec(modelID)
-	if err != nil {
-		return err
-	}
-	params, err := generation.ValidateAndCoerce(modelID, raw, spec.Parameters)
-	if err != nil {
-		return err
-	}
-	resp, err := generation.Submit(apiKey, spec.API.Endpoint, resolvedModelID, params)
+	resp, spec, err := submitLegacyGeneration(apiKey, modelID, resolvedModelID, raw)
 	if err != nil {
 		return clierrors.ErrSubmitFailed(err)
 	}

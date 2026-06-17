@@ -5,10 +5,9 @@
   <h1>SeaCloud CLI</h1>
   <h3>SeaCloud AI 平台的官方命令行界面</h3>
   <p>
-    SeaCloud CLI 是专为 Agent 设计的多模态任务执行命令行工具。通过
-    SeaCloud 认证，它可以统一访问 LLM、图像、视频、音频、3D 等模型；
-    支持模型搜索、规格查询、任务执行和结果追踪；并帮助发现和管理面向
-    创意工作流的专业技能。
+    SeaCloud CLI 是专为 Agent 设计的多模态任务执行 CLI，可通过一个 API Key
+    统一调用 LLM、图像、视频、音频、3D 等模型，支持模型查找、规格查询、任务执行、结果追踪，并通过
+    SkillHub 发现和管理面向创意工作流的专业技能。
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">

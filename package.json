@@ -1,6 +1,6 @@
 {
   "name": "@seacloudai/seacloud-cli",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "description": "npm installer wrapper for the SeaCloud CLI binary",
   "license": "MIT",
   "publishConfig": {
@@ -13,10 +13,11 @@
   "files": [
     "assets",
     "npm-bundles",
+    "scripts/archive-extract.js",
+    "scripts/gateway-skill-deploy.js",
     "scripts/postinstall.js",
     "scripts/seacloud.js",
-    "scripts/seacloud-skills.js",
-    "vendor"
+    "scripts/seacloud-skills.js"
   ],
   "scripts": {
     "prepare:npm-bundles": "node ./scripts/prepare-npm-bundles.js",
@@ -25,16 +26,13 @@
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {
-    "adm-zip": "^0.5.16",
-    "tar": "^7.4.3"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/SeaCloudAI/seacloud-cli.git"
   },
   "seacloud": {
     "bundledAssetsDir": "npm-bundles",
+    "gatewaySkillDir": "assets/gateway-skill/seacloud",
     "projectName": "seacloud",
     "releaseBaseUrlTemplate": "https://github.com/SeaCloudAI/seacloud-cli/releases/download/v{version}"
   }

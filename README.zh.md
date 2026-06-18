@@ -5,8 +5,9 @@
   <h1>SeaCloud CLI</h1>
   <h3>SeaCloud AI 平台的官方命令行界面</h3>
   <p>
-    专为人工智能代理而设计。可从任何代理或终端完成认证、模型查询、
-    多模态任务执行、任务状态追踪和 SkillHub 技能管理。
+    SeaCloud CLI 是专为 Agent 设计的多模态任务执行 CLI，可通过一个 API Key
+    统一调用 LLM、图像、视频、音频、3D 等模型，支持模型查找、规格查询、任务执行、结果追踪，并通过
+    SkillHub 发现和管理面向创意工作流的专业技能。
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">
@@ -28,7 +29,7 @@
 - **认证登录**：支持浏览器设备码登录，并将凭证安全保存在本地。
 - **模型发现**：列出可用模型，并以可读文本或 JSON 查看完整参数规格。
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
-- **代理生图**：通过兼容的代理服务调用同步生图模型，并可选择输出资产 URL。
+- **图片模型执行**：通过 `seacloud run` 生成图片，或使用 `seacloud run-async` 异步提交图片任务。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、输出限量、可操作错误、稳定命令结构和可直接复制的示例。
@@ -42,6 +43,16 @@ npm install -g @seacloudai/seacloud-cli
 ```
 
 > 需要 Node.js 18+
+
+npm 安装器还会 best-effort 部署一份很薄的 Gateway Skill 到 Agent 技能目录，
+让新的 Agent 会话能发现 `seacloud`。Skill 部署失败只会输出 warning，
+不会阻断 CLI 二进制安装。可设置 `SEACLOUD_SKIP_SKILL_DEPLOY=1` 跳过这一步。
+
+Agent 执行真实 SeaCloud 命令前，应先从已安装的二进制读取当前 CLI 能力说明：
+
+```bash
+seacloud agent describe
+```
 
 ### 从源码安装
 
@@ -88,38 +99,40 @@ seacloud auth login
 seacloud auth status
 ```
 
+### 查询账户余额
+
+```bash
+seacloud account balance
+seacloud account balance --output json
+```
+
 ### 查询模型
 
 ```bash
 seacloud models list
-seacloud models list --type video
-seacloud models spec kling_v2_6_i2v
-seacloud models spec seedance_2_0 --output json
+seacloud models spec gpt_image_2
+seacloud models spec gpt_image_2 --output json
 ```
 
 ### 执行任务
 
 ```bash
-seacloud run kling_v2_6_i2v --param image=https://example.com/cat.jpg
-seacloud run seedance_2_0 --param prompt="a cat running" --param duration=5
-seacloud run kling_v2_6_i2v --param mode=pro --output url
-seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
+seacloud run gpt_image_2 \
+  --param prompt="a cute golden retriever puppy on a white studio background" \
+  --param n=1 \
+  --param size=1024x1024 \
+  --param output_format=png \
+  --output json
 ```
 
-SeaCloud CLI 现在支持直接使用 `kling_*`、`seedance_*`、`seedream_*` 这类对外模型 ID，
-提交前会自动映射到当前后端使用的原始模型 ID。
+请使用 `seacloud models list` 返回的模型 ID，并在执行前通过
+`seacloud models spec <model_id>` 查看该模型的准确参数合约。
 
-### 通过代理生图
+### 只提交任务，不等待结果
 
 ```bash
-SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
-  --model gpt-image-2 \
-  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
-  --output json
-
-SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
-  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
-  --output url
+seacloud run-async gpt_image_2 --param prompt="A flat vector poster of a blue cat wearing black sunglasses"
+seacloud run-async gpt_image_2 --param prompt="A flat vector poster of a blue cat wearing black sunglasses" --output id
 ```
 
 ### 查询任务状态
@@ -134,7 +147,9 @@ seacloud task status <task_id> --output json
 
 ```bash
 seacloud skills list
+seacloud skills list --output json
 seacloud skills find prompt
+seacloud skills find prompt --output json
 seacloud skills add some-skill
 seacloud skills config --show
 ```
@@ -161,11 +176,24 @@ seacloud auth logout
 seacloud auth set-key <api-key>
 ```
 
+### `seacloud agent`
+
+```bash
+seacloud agent describe
+```
+
+### `seacloud account`
+
+```bash
+seacloud account balance
+seacloud account balance --output json
+```
+
 ### `seacloud models`
 
 ```bash
 seacloud models list
-seacloud models list --keywords kirin
+seacloud models list --keywords gpt
 seacloud models list --output id
 seacloud models spec <model_id>
 seacloud models spec <model_id> --output json
@@ -174,10 +202,8 @@ seacloud models spec <model_id> --output json
 ### `seacloud run`
 
 ```bash
-seacloud run <model_id> --param key=value
-seacloud run <model_id> --param prompt="hello" --param duration=5
-seacloud run <model_id> --output json
-seacloud run gpt-image-2 --param prompt="一只蓝色猫" --output url
+seacloud run gpt_image_2 --param prompt="一只蓝色猫" --param n=1 --param size=1024x1024 --param output_format=png --output json
+seacloud run gpt_image_2 --param prompt="一只蓝色猫" --param n=1 --param size=1024x1024 --param output_format=png --output url
 ```
 
 嵌套字段支持 dot notation：
@@ -198,17 +224,19 @@ seacloud task status <task_id>
 
 ```bash
 seacloud skills list
+seacloud skills list --output json
 seacloud skills find [query]
+seacloud skills find [query] --output json
 seacloud skills add <slug>
 seacloud skills config --show
 ```
 
-### `seacloud images`
+### `seacloud run-async`
 
 ```bash
-seacloud images generate --prompt="一只蓝色猫"
-seacloud images generate --prompt="一只蓝色猫" --output json
-seacloud images generate --prompt="一只蓝色猫" --output url
+seacloud run-async gpt_image_2 --param prompt="一只蓝色猫"
+seacloud run-async gpt_image_2 --param prompt="一只蓝色猫" --output json
+seacloud run-async gpt_image_2 --param prompt="一只蓝色猫" --output id
 ```
 
 ### `seacloud sandbox`
@@ -289,7 +317,8 @@ seacloud version
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
 - sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
-- 使用 `seacloud images generate` 或通过 `seacloud run` 调用同步生图模型时，请把 `SEACLOUD_FOLKOS_PROXY_URL` 设置为你的代理服务根地址。
+- 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
+- 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
 - 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
@@ -300,7 +329,7 @@ seacloud version
 示例：
 
 ```bash
-seacloud --dry-run run seedance_2_0 --param prompt=test
+seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```
 
@@ -319,14 +348,26 @@ npm 包在安装时会自动下载当前平台对应的预编译二进制。
 
 ```text
 seacloud-cli/
-├── cmd/                 # CLI 命令定义
-├── internal/auth/       # 认证客户端与登录流程
-├── internal/models/     # 模型列表与模型规格接口
-├── internal/generation/ # 任务提交与轮询
-├── internal/skillhub/   # SkillHub 客户端与安装逻辑
-├── package.json         # npm 包清单
-├── scripts/             # 构建、发版与 npm 包装脚本
-└── skills/              # 内置技能定义
+├── cmd/                     # Cobra 命令定义和命令测试
+├── internal/account/        # 账户余额接口客户端
+├── internal/agentdescribe/  # Agent 能力说明
+├── internal/auth/           # 认证客户端与登录流程
+├── internal/buildinfo/      # 版本与构建元数据
+├── internal/clierrors/      # 可操作错误信息格式化
+├── internal/config/         # 本地配置、认证与托管运行时辅助逻辑
+├── internal/contracts/      # model-contract.v1 拉取、缓存与校验
+├── internal/generation/     # 生成结果解析与旧生成流程辅助逻辑
+├── internal/modelendpoints/ # 模型/规格接口默认地址与覆盖逻辑
+├── internal/models/         # 模型列表、别名与规格查询
+├── internal/queue/          # 队列提交、轮询与结果客户端
+├── internal/sandbox/        # 沙箱与模板接口客户端
+├── internal/skillhub/       # SkillHub 搜索、安装与配置逻辑
+├── internal/taskcache/      # 本地队列任务元数据缓存
+├── assets/                  # README 图片与 Gateway Skill 源文件
+├── docs/                    # 设计说明与迁移计划
+├── package.json             # npm 包清单
+├── scripts/                 # 构建、发版、Gateway Skill 与 npm 包装脚本
+└── skills/                  # 内置技能定义
 ```
 
 ## 参与贡献

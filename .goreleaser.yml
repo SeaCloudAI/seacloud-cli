@@ -24,8 +24,11 @@ builds:
         -s -w
         -X github.com/SeaCloudAI/seacloud-cli/internal/buildinfo.Version={{ .Version }}
         -X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL={{ .Env.SEACLOUD_BASE_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/account.BaseURL={{ .Env.SEACLOUD_BASE_URL }}
         -X github.com/SeaCloudAI/seacloud-cli/internal/models.BaseURL={{ .Env.SEACLOUD_MODELS_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/contracts.BaseURL={{ .Env.SEACLOUD_MODELS_URL }}
         -X github.com/SeaCloudAI/seacloud-cli/internal/generation.BaseURL={{ .Env.SEACLOUD_GENERATION_URL }}
+        -X github.com/SeaCloudAI/seacloud-cli/internal/queue.BaseURL={{ .Env.SEACLOUD_GENERATION_URL }}
         -X github.com/SeaCloudAI/seacloud-cli/internal/skillhub.BaseURL={{ .Env.SEACLOUD_SKILLHUB_URL }}
         -X github.com/SeaCloudAI/seacloud-cli/internal/config.DefaultFolkosProxyBaseURL={{ .Env.SEACLOUD_FOLKOS_PROXY_URL }}
 

@@ -12,15 +12,18 @@ func TestListRewritesDisplayModelIDs(t *testing.T) {
 		if got := r.URL.Path; got != "/api/v1/skill/models" {
 			t.Fatalf("expected list path, got %q", got)
 		}
+		if got := r.URL.Query().Get("keywords"); got != "gpt" {
+			t.Fatalf("expected keywords query, got %q", got)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"status":{"code":200,"message":"ok"},
 			"data":{
 				"models":[
-					{"id":"kirin_v2_6_i2v","name":"Kling V2.6 I2V","type":"video","description":"","input_modalities":["image"],"output_modalities":["video"]},
-					{"id":"spark_dance_v2_0","name":"Seedance 2.0","type":"video","description":"","input_modalities":["text"],"output_modalities":["video"]},
-					{"id":"spark_dream_4_5","name":"Seedream 4.5","type":"image","description":"","input_modalities":["text"],"output_modalities":["image"]},
-					{"id":"gpt-image-2","name":"GPT Image 2","type":"image","description":"","input_modalities":["text"],"output_modalities":["image"]}
+					{"id":"kirin_v2_6_i2v","name":"Kling V2.6 I2V","type":"Video","description":"Kling model","input_modalities":["Text","Image"],"output_modalities":["Video"],"source_id":"kirin_v2_6_i2v","has_spec":true,"spec_protocol":"queue"},
+					{"id":"spark_dance_v2_0","name":"Seedance 2.0","type":"Video","description":"Seedance model","input_modalities":["Text"],"output_modalities":["Video"],"source_id":"spark_dance_v2_0","has_spec":true,"spec_protocol":"queue"},
+					{"id":"spark_dream_4_5","name":"Seedream 4.5","type":"Image","description":"Seedream model","input_modalities":["Text"],"output_modalities":["Image"],"source_id":"spark_dream_4_5","has_spec":true,"spec_protocol":"queue"},
+					{"id":"gpt-image-2","name":"GPT Image 2","type":"Image","description":"GPT Image model","input_modalities":["Text"],"output_modalities":["Image"],"source_id":"gpt-image-2","has_spec":true,"spec_protocol":"queue"}
 				],
 				"total":4,
 				"page":1,
@@ -34,7 +37,7 @@ func TestListRewritesDisplayModelIDs(t *testing.T) {
 	t.Setenv("SEACLOUD_MODELS_URL", server.URL)
 	BaseURL = ""
 
-	result, err := List(ListParams{})
+	result, err := List(ListParams{Keywords: "gpt"})
 	if err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}
@@ -49,6 +52,15 @@ func TestListRewritesDisplayModelIDs(t *testing.T) {
 	}
 	if got := result.Models[3].ID; got != "gpt-image-2" {
 		t.Fatalf("expected unrelated id to stay unchanged, got %q", got)
+	}
+	if got := result.Models[3].SourceID; got != "gpt-image-2" {
+		t.Fatalf("expected source id to be preserved, got %q", got)
+	}
+	if !result.Models[3].HasSpec {
+		t.Fatal("expected has_spec to be preserved")
+	}
+	if got := result.Models[3].SpecProtocol; got != "queue" {
+		t.Fatalf("expected spec protocol to be preserved, got %q", got)
 	}
 }
 

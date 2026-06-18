@@ -5,8 +5,11 @@
   <h1>SeaCloud CLI</h1>
   <h3>The official CLI for the SeaCloud AI Platform</h3>
   <p>
-    Built for AI agents. Authenticate, browse models, submit multimodal tasks,
-    track task status, and manage SkillHub skills from any agent or terminal.
+    SeaCloud CLI is a multimodal task execution CLI designed specifically for
+    Agents. With one SeaCloud API Key, it provides unified access to LLM, image,
+    video, audio, 3D, and other models; supports model search, spec queries, task
+    execution, and result tracking; and helps discover and manage professional
+    skills for creative workflows through SkillHub.
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">
@@ -28,7 +31,7 @@
 - **Authentication**: Sign in with the browser-based device flow and store credentials locally.
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
-- **Proxy-based image generation**: Call sync image-generation models through a compatible proxy service, with optional asset URL output.
+- **Image model execution**: Generate images through `seacloud run` or submit image tasks asynchronously with `seacloud run-async`.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, output limits, actionable errors, stable command shapes, and copy-pasteable examples.
@@ -42,6 +45,18 @@ npm install -g @seacloudai/seacloud-cli
 ```
 
 > Requires Node.js 18+
+
+The npm installer also best-effort deploys a thin Gateway Skill to your agent
+skills directory so new agent sessions can discover `seacloud`. Skill deployment
+failures are reported as warnings and do not block the CLI binary install. Set
+`SEACLOUD_SKIP_SKILL_DEPLOY=1` to skip this step.
+
+Before an agent runs real SeaCloud commands, it should load the current CLI
+capabilities from the installed binary:
+
+```bash
+seacloud agent describe
+```
 
 ### Install from source
 
@@ -88,38 +103,51 @@ seacloud auth login
 seacloud auth status
 ```
 
+### Check account balance
+
+```bash
+seacloud account balance
+seacloud account balance --output json
+```
+
 ### Browse models
 
 ```bash
 seacloud models list
-seacloud models list --type video
-seacloud models spec kling_v2_6_i2v
-seacloud models spec seedance_2_0 --output json
+seacloud models spec gpt_image_2
+seacloud models spec gpt_image_2 --output json
 ```
 
 ### Run a task
 
 ```bash
-seacloud run kling_v2_6_i2v --param image=https://example.com/cat.jpg
-seacloud run seedance_2_0 --param prompt="a cat running" --param duration=5
-seacloud run kling_v2_6_i2v --param mode=pro --output url
-seacloud run gpt-image-2 --param prompt="a blue cat" --output url
+seacloud run gpt_image_2 \
+  --param prompt="a cute golden retriever puppy on a white studio background" \
+  --param n=1 \
+  --param size=1024x1024 \
+  --param output_format=png \
+  --output json
 ```
 
-SeaCloud CLI accepts user-facing model IDs such as `kling_*`, `seedance_*`, and `seedream_*`.
-They are resolved to the current backend IDs automatically before submission.
-
-### Generate an image through the proxy
+### Generate a video
 
 ```bash
-SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
-  --model gpt-image-2 \
-  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
+seacloud run pixverse_v6_t2v \
+  --param prompt="a cinematic shot of a golden retriever puppy running through a sunlit field" \
+  --param aspect_ratio=16:9 \
+  --param duration=5 \
+  --param quality=720p \
   --output json
+```
 
-SEACLOUD_FOLKOS_PROXY_URL=http://127.0.0.1:8090 seacloud images generate \
-  --prompt "A flat vector poster of a blue cat wearing black sunglasses" \
-  --output url
+Use model IDs returned by `seacloud models list`, then inspect the exact
+parameter contract with `seacloud models spec <model_id>` before running.
+
+### Submit without waiting
+
+```bash
+seacloud run-async gpt_image_2 --param prompt="A flat vector poster of a blue cat wearing black sunglasses"
+seacloud run-async gpt_image_2 --param prompt="A flat vector poster of a blue cat wearing black sunglasses" --output id
 ```
 
 ### Check task status
@@ -134,7 +162,9 @@ seacloud task status <task_id> --output json
 
 ```bash
 seacloud skills list
+seacloud skills list --output json
 seacloud skills find prompt
+seacloud skills find prompt --output json
 seacloud skills add some-skill
 seacloud skills config --show
 ```
@@ -161,11 +191,24 @@ seacloud auth logout
 seacloud auth set-key <api-key>
 ```
 
+### `seacloud agent`
+
+```bash
+seacloud agent describe
+```
+
+### `seacloud account`
+
+```bash
+seacloud account balance
+seacloud account balance --output json
+```
+
 ### `seacloud models`
 
 ```bash
 seacloud models list
-seacloud models list --keywords kirin
+seacloud models list --keywords gpt
 seacloud models list --output id
 seacloud models spec <model_id>
 seacloud models spec <model_id> --output json
@@ -174,10 +217,9 @@ seacloud models spec <model_id> --output json
 ### `seacloud run`
 
 ```bash
-seacloud run <model_id> --param key=value
-seacloud run <model_id> --param prompt="hello" --param duration=5
-seacloud run <model_id> --output json
-seacloud run gpt-image-2 --param prompt="a blue cat" --output url
+seacloud run gpt_image_2 --param prompt="a blue cat" --param n=1 --param size=1024x1024 --param output_format=png --output json
+seacloud run gpt_image_2 --param prompt="a blue cat" --param n=1 --param size=1024x1024 --param output_format=png --output url
+seacloud run pixverse_v6_t2v --param prompt="a puppy running through a sunlit field" --param aspect_ratio=16:9 --param duration=5 --param quality=720p --output json
 ```
 
 Nested fields use dot notation:
@@ -198,17 +240,19 @@ seacloud task status <task_id>
 
 ```bash
 seacloud skills list
+seacloud skills list --output json
 seacloud skills find [query]
+seacloud skills find [query] --output json
 seacloud skills add <slug>
 seacloud skills config --show
 ```
 
-### `seacloud images`
+### `seacloud run-async`
 
 ```bash
-seacloud images generate --prompt="a blue cat"
-seacloud images generate --prompt="a blue cat" --output json
-seacloud images generate --prompt="a blue cat" --output url
+seacloud run-async gpt_image_2 --param prompt="a blue cat"
+seacloud run-async gpt_image_2 --param prompt="a blue cat" --output json
+seacloud run-async gpt_image_2 --param prompt="a blue cat" --output id
 ```
 
 ### `seacloud sandbox`
@@ -289,7 +333,8 @@ seacloud version
 - Use `--output json` where supported for machine-readable responses.
 - Use `--format json` on sandbox/template commands for E2B-compatible output flag naming.
 - Use `--output url` on task commands to print only result URLs.
-- Set `SEACLOUD_FOLKOS_PROXY_URL` to the root of your proxy service when using `seacloud images generate` or sync image models through `seacloud run`.
+- Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
+- Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
 - Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` only when you need a non-default sandbox API root. The default is `https://cloud.seaart.ai/api/v1`.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
@@ -300,7 +345,7 @@ seacloud version
 Example:
 
 ```bash
-seacloud --dry-run run seedance_2_0 --param prompt=test
+seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```
 
@@ -319,14 +364,26 @@ If you maintain releases manually, the repository includes:
 
 ```text
 seacloud-cli/
-├── cmd/                # CLI command definitions
-├── internal/auth/      # Auth client and login flow
-├── internal/models/    # Model list and spec APIs
-├── internal/generation/# Task submit and polling
-├── internal/skillhub/  # SkillHub client and install logic
-├── package.json        # npm package manifest
-├── scripts/            # Build, release, and npm wrapper scripts
-└── skills/             # Built-in skill definitions
+├── cmd/                     # Cobra command definitions and command tests
+├── internal/account/        # Account balance API client
+├── internal/agentdescribe/  # Agent capability descriptions
+├── internal/auth/           # Auth client and login flow
+├── internal/buildinfo/      # Version and build metadata
+├── internal/clierrors/      # Actionable CLI error formatting
+├── internal/config/         # Local config, auth, and managed runtime helpers
+├── internal/contracts/      # model-contract.v1 fetch, cache, and validation
+├── internal/generation/     # Generation response parsing and legacy helpers
+├── internal/modelendpoints/ # Model/spec endpoint defaults and overrides
+├── internal/models/         # Model list, aliases, and spec lookup
+├── internal/queue/          # Queue submit, polling, and result clients
+├── internal/sandbox/        # Sandbox and template API client
+├── internal/skillhub/       # SkillHub search, install, and config logic
+├── internal/taskcache/      # Local queue task metadata cache
+├── assets/                  # README banners and Gateway Skill source
+├── docs/                    # Design notes and migration plans
+├── package.json             # npm package manifest
+├── scripts/                 # Build, release, Gateway Skill, and npm wrapper scripts
+└── skills/                  # Built-in skill definitions
 ```
 
 ## Contributing

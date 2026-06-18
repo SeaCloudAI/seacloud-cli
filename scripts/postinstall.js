@@ -4,8 +4,8 @@ const crypto = require("crypto");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
-const AdmZip = require("adm-zip");
-const tar = require("tar");
+const { extractArchive } = require("./archive-extract");
+const { deployGatewaySkill } = require("./gateway-skill-deploy");
 
 const rootDir = path.resolve(__dirname, "..");
 const pkg = require(path.join(rootDir, "package.json"));
@@ -46,7 +46,7 @@ async function main() {
     fs.mkdirSync(vendorDir, { recursive: true });
     fs.mkdirSync(extractDir, { recursive: true });
 
-    log(`downloading ${assetName}`);
+    log(`installing ${assetName}`);
     const expectedSha = await resolveExpectedSha(releaseSources, assetName);
     await materializeArchive(releaseSources, assetName, archivePath, expectedSha);
 
@@ -63,6 +63,7 @@ async function main() {
     }
 
     log(`installed ${target.bin} to vendor directory`);
+    deployGatewaySkillSafely();
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -111,17 +112,17 @@ function resolveBaseUrl(fromEnv, template, missingMessage) {
 }
 
 function resolveReleaseSources() {
-  const sources = [
-    { name: "GitHub Release", type: "remote", baseUrl: resolveReleaseBaseUrl() }
-  ];
-  const mirrorBaseUrl = resolveReleaseMirrorBaseUrl();
-
-  if (mirrorBaseUrl && mirrorBaseUrl !== sources[0].baseUrl) {
-    sources.push({ name: "Release mirror", type: "remote", baseUrl: mirrorBaseUrl });
+  if (fs.existsSync(bundledAssetsDir)) {
+    return [{ name: "bundled npm package", type: "local", basePath: bundledAssetsDir }];
   }
 
-  if (fs.existsSync(bundledAssetsDir)) {
-    sources.push({ name: "bundled npm package", type: "local", basePath: bundledAssetsDir });
+  const sources = [];
+  const releaseBaseUrl = resolveReleaseBaseUrl();
+  sources.push({ name: "GitHub Release", type: "remote", baseUrl: releaseBaseUrl });
+  const mirrorBaseUrl = resolveReleaseMirrorBaseUrl();
+
+  if (mirrorBaseUrl && mirrorBaseUrl !== releaseBaseUrl) {
+    sources.push({ name: "Release mirror", type: "remote", baseUrl: mirrorBaseUrl });
   }
 
   return sources;
@@ -238,22 +239,6 @@ function sha256File(filePath) {
   return hash.digest("hex");
 }
 
-async function extractArchive(archivePath, destination, extension) {
-  if (extension === "zip") {
-    const zip = new AdmZip(archivePath);
-    zip.extractAllTo(destination, true);
-    return;
-  }
-  if (extension === "tar.gz") {
-    await tar.x({
-      file: archivePath,
-      cwd: destination
-    });
-    return;
-  }
-  throw new Error(`unsupported archive format: ${extension}`);
-}
-
 function findFileRecursive(dir, fileName) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -275,10 +260,18 @@ function log(message) {
   console.log(`[seacloud installer] ${message}`);
 }
 
+function deployGatewaySkillSafely() {
+  try {
+    deployGatewaySkill({ rootDir, logger: log });
+  } catch (err) {
+    log(`warning: gateway skill deploy failed: ${err.message}`);
+  }
+}
+
 main().catch((err) => {
   console.error(`[seacloud installer] ${err.message}`);
   console.error(
-    "[seacloud installer] hint: GitHub download failed; package will fall back to bundled archives when available."
+    "[seacloud installer] hint: ensure this npm package includes npm-bundles for offline installation."
   );
   process.exit(1);
 });

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
@@ -14,7 +13,10 @@ var taskStatusOutput string
 
 var taskCmd = &cobra.Command{
 	Use:   "task",
-	Short: "Manage generation tasks",
+	Short: "Check generation task status and outputs",
+	Long: `Manage SeaCloud generation tasks.
+
+Use this after an async model run returns a task ID.`,
 }
 
 var taskStatusCmd = &cobra.Command{
@@ -40,6 +42,13 @@ Exit codes:
 			return clierrors.ErrNoAPIKey()
 		}
 
+		if task, handled, err := getQueueTaskStatus(cfg.APIKey, taskID); handled {
+			if err != nil {
+				return err
+			}
+			return printQueueTaskStatus(task)
+		}
+
 		task, err := generation.GetTask(cfg.APIKey, taskID)
 		if err != nil {
 			return fmt.Errorf("failed to fetch task %s: %w", taskID, err)
@@ -53,9 +62,7 @@ Exit codes:
 		}
 
 		if taskStatusOutput == "json" {
-			b, _ := json.MarshalIndent(task, "", "  ")
-			fmt.Println(string(b))
-			return nil
+			return printJSON(task)
 		}
 
 		// Human-readable

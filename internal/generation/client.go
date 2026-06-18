@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 )
 
@@ -68,20 +69,7 @@ func (c *Client) do(method, endpoint string, body []byte, out any) error {
 	}
 
 	if resp.StatusCode >= 400 {
-		var errBody struct {
-			Message string `json:"message"`
-			Error   string `json:"error"`
-		}
-		if json.Unmarshal(respBody, &errBody) == nil {
-			msg := errBody.Message
-			if msg == "" {
-				msg = errBody.Error
-			}
-			if msg != "" {
-				return fmt.Errorf("HTTP %d: %s", resp.StatusCode, msg)
-			}
-		}
-		return fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(respBody))
+		return clierrors.NewAPIError(resp.StatusCode, respBody)
 	}
 
 	return json.Unmarshal(respBody, out)
@@ -143,11 +131,12 @@ type OutputGroup struct {
 }
 
 type OutputContent struct {
-	Type     string `json:"type"` // video | image | audio
-	URL      string `json:"url"`
-	Duration string `json:"duration,omitempty"`
-	ID       string `json:"id,omitempty"`
-	ImgID    int64  `json:"img_id,omitempty"`
+	Type     string         `json:"type"` // video | image | audio
+	URL      string         `json:"url"`
+	Duration string         `json:"duration,omitempty"`
+	ID       string         `json:"id,omitempty"`
+	ImgID    int64          `json:"img_id,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type UsageInfo struct {

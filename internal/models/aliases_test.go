@@ -47,6 +47,7 @@ func TestResolveModelID(t *testing.T) {
 		{name: "seedream_4_0", input: "seedream_4_0", want: "spark_dream_4_0", display: "seedream_4_0"},
 		{name: "seedream_4_5", input: "seedream_4_5", want: "spark_dream_4_5", display: "seedream_4_5"},
 		{name: "seedream_5_0", input: "seedream_5_0", want: "spark_dream_5_0", display: "seedream_5_0"},
+		{name: "seacloud source prefix", input: "seacloud__happyhorse_1.0_t2v", want: "happyhorse_1.0_t2v", display: "happyhorse_1.0_t2v"},
 		{
 			name:    "legacy id stays unchanged",
 			input:   "kirin_v2_6_i2v",

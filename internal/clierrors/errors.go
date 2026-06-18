@@ -1,6 +1,11 @@
 package clierrors
 
-import "fmt"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+	"strings"
+)
 
 // CLIError is an error with a human-readable hint for what to do next.
 // Cobra prints err.Error() directly, so the hint appears inline.
@@ -9,11 +14,74 @@ type CLIError struct {
 	Hint    string
 }
 
+type APIError struct {
+	HTTPStatus int
+	StatusCode int
+	ErrorCode  int
+	Message    string
+	Body       string
+}
+
 func (e *CLIError) Error() string {
 	if e.Hint != "" {
 		return e.Message + "\n  Hint: " + e.Hint
 	}
 	return e.Message
+}
+
+func (e *APIError) Error() string {
+	msg := e.Message
+	if msg == "" {
+		msg = e.Body
+	}
+	return fmt.Sprintf("HTTP %d: %s", e.HTTPStatus, msg)
+}
+
+func NewAPIError(httpStatus int, body []byte) *APIError {
+	apiErr := &APIError{HTTPStatus: httpStatus, Body: string(body)}
+	var payload struct {
+		Message   string `json:"message"`
+		Error     string `json:"error"`
+		ErrorCode int    `json:"error_code"`
+		Status    struct {
+			Code      int    `json:"code"`
+			Message   string `json:"message"`
+			ErrorCode int    `json:"error_code"`
+		} `json:"status"`
+	}
+	if json.Unmarshal(body, &payload) == nil {
+		apiErr.StatusCode = payload.Status.Code
+		apiErr.ErrorCode = payload.Status.ErrorCode
+		if apiErr.ErrorCode == 0 {
+			apiErr.ErrorCode = payload.ErrorCode
+		}
+		apiErr.Message = payload.Status.Message
+		if apiErr.Message == "" {
+			apiErr.Message = payload.Message
+		}
+		if apiErr.Message == "" {
+			apiErr.Message = payload.Error
+		}
+	}
+	return apiErr
+}
+
+func IsInsufficientBalance(err error) bool {
+	if err == nil {
+		return false
+	}
+	var apiErr *APIError
+	if errors.As(err, &apiErr) && apiErr.ErrorCode >= 40201 && apiErr.ErrorCode <= 40208 {
+		return true
+	}
+	text := strings.ToLower(err.Error())
+	return strings.Contains(text, "insufficient_balance") ||
+		strings.Contains(text, "insufficient balance") ||
+		strings.Contains(text, "insufficient credits")
+}
+
+func IsGenerationBaseURLMissing(err error) bool {
+	return err != nil && strings.Contains(err.Error(), "generation base URL not configured")
 }
 
 func ErrNotLoggedIn() error {
@@ -122,9 +190,25 @@ func ErrMissingParam(modelID, name string) error {
 }
 
 func ErrSubmitFailed(err error) error {
+	if IsInsufficientBalance(err) {
+		return ErrInsufficientBalance()
+	}
+	if IsGenerationBaseURLMissing(err) {
+		return &CLIError{
+			Message: fmt.Sprintf("generation request failed: %v", err),
+			Hint:    "Set SEACLOUD_GENERATION_URL=https://cloud.seaart.ai or install a release build with a configured generation endpoint.",
+		}
+	}
 	return &CLIError{
 		Message: fmt.Sprintf("generation request failed: %v", err),
 		Hint:    "Check your API key with: seacloud auth status",
+	}
+}
+
+func ErrInsufficientBalance() error {
+	return &CLIError{
+		Message: "insufficient balance",
+		Hint:    "Check your balance: seacloud account balance\n        Top up at: https://cloud.seaart.ai/settings/credits",
 	}
 }
 

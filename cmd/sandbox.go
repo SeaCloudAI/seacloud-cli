@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -1356,15 +1355,6 @@ func printSandbox(s *control.Sandbox, output string) error {
 	if s.EnvdURL != nil && *s.EnvdURL != "" {
 		fmt.Printf("  Runtime:  %s\n", *s.EnvdURL)
 	}
-	return nil
-}
-
-func printJSON(value any) error {
-	data, err := json.MarshalIndent(value, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(data))
 	return nil
 }
 

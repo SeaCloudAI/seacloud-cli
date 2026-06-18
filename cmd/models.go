@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/spf13/cobra"
@@ -111,10 +112,7 @@ Use --output json to get the raw structured contract including:
   body_mode       Request body mode
   endpoints       Submit, status, result, and cancel endpoints
   input_schema    JSON Schema-style parameter definition
-  prerequisites   Required upstream task metadata, when present
-
-If the model is listed but has no published detailed contract, the CLI returns a
-generic queue contract that accepts raw --param key=value fields.`,
+  prerequisites   Required upstream task metadata, when present`,
 	Example: `  seacloud models spec kling_v2_6_i2v
   seacloud models spec seedance_2_0 --output json`,
 	Args: cobra.ExactArgs(1),
@@ -128,7 +126,7 @@ generic queue contract that accepts raw --param key=value fields.`,
 func printModelContractSpec(modelID string) error {
 	contract, err := contracts.Get(modelID, contracts.Options{})
 	if errors.Is(err, contracts.ErrNotFound) {
-		contract = contracts.Generic(modelID)
+		return clierrors.ErrModelNotFound(modelID)
 	} else if err != nil {
 		return err
 	}

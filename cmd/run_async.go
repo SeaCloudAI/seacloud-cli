@@ -101,6 +101,8 @@ func runWithContractAsync(apiKey, modelID, resolvedModelID string, contract *con
 			Protocol: "queue",
 			Next:     nextTaskStatusCommand(submitted.ID),
 		})
+	case isLLMContract(contract):
+		return fmt.Errorf("LLM contracts do not support run-async because they return synchronous HTTP/SSE responses")
 	case contract.Protocol == "generation" || contract.BodyMode == "generation_wrapper":
 		resp, _, err := submitLegacyGeneration(apiKey, modelID, resolvedModelID, raw)
 		if err != nil {

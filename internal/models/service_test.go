@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestListRewritesDisplayModelIDs(t *testing.T) {
+func TestListPreservesSkillModelIDsAndMetadata(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if got := r.URL.Path; got != "/api/v1/skill/models" {
 			t.Fatalf("expected list path, got %q", got)
@@ -15,17 +15,18 @@ func TestListRewritesDisplayModelIDs(t *testing.T) {
 		if got := r.URL.Query().Get("keywords"); got != "gpt" {
 			t.Fatalf("expected keywords query, got %q", got)
 		}
+		if got := r.URL.Query().Get("provider"); got != "blackforestlabs" {
+			t.Fatalf("expected provider query, got %q", got)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{
 			"status":{"code":200,"message":"ok"},
 			"data":{
 				"models":[
-					{"id":"kirin_v2_6_i2v","name":"Kling V2.6 I2V","type":"Video","description":"Kling model","input_modalities":["Text","Image"],"output_modalities":["Video"],"source_id":"kirin_v2_6_i2v","has_spec":true,"spec_protocol":"queue"},
-					{"id":"spark_dance_v2_0","name":"Seedance 2.0","type":"Video","description":"Seedance model","input_modalities":["Text"],"output_modalities":["Video"],"source_id":"spark_dance_v2_0","has_spec":true,"spec_protocol":"queue"},
-					{"id":"spark_dream_4_5","name":"Seedream 4.5","type":"Image","description":"Seedream model","input_modalities":["Text"],"output_modalities":["Image"],"source_id":"spark_dream_4_5","has_spec":true,"spec_protocol":"queue"},
-					{"id":"gpt-image-2","name":"GPT Image 2","type":"Image","description":"GPT Image model","input_modalities":["Text"],"output_modalities":["Image"],"source_id":"gpt-image-2","has_spec":true,"spec_protocol":"queue"}
+					{"id":"kirin_v2_6_i2v","model_id":"kirin_v2_6_i2v","name":"Kling V2.6 I2V","type":"video","provider":"kuaishou","source_collection":"multi_models_new","original_model_id":"kirin_v2_6_i2v","model_subtype":"i2v","description":"Kling model","input_modalities":["Text","Image"],"output_modalities":["Video"]},
+					{"id":"flux_2_pro","model_id":"flux_2_pro","name":"FLUX.2 [pro]","type":"image","provider":"blackforestlabs","source_collection":"multi_models_new","original_model_id":"flux_2_pro","model_subtype":"pro","description":"Flux model","input_modalities":["Text"],"output_modalities":["Image"]}
 				],
-				"total":4,
+				"total":2,
 				"page":1,
 				"page_size":20,
 				"total_pages":1
@@ -37,30 +38,27 @@ func TestListRewritesDisplayModelIDs(t *testing.T) {
 	t.Setenv("SEACLOUD_MODELS_URL", server.URL)
 	BaseURL = ""
 
-	result, err := List(ListParams{Keywords: "gpt"})
+	result, err := List(ListParams{Keywords: "gpt", Provider: "blackforestlabs"})
 	if err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}
-	if got := result.Models[0].ID; got != "kling_v2_6_i2v" {
-		t.Fatalf("expected kling alias, got %q", got)
+	if got := result.Models[0].ID; got != "kirin_v2_6_i2v" {
+		t.Fatalf("expected skill model id to stay unchanged, got %q", got)
 	}
-	if got := result.Models[1].ID; got != "seedance_2_0" {
-		t.Fatalf("expected seedance alias, got %q", got)
+	if got := result.Models[0].ModelID; got != result.Models[0].ID {
+		t.Fatalf("expected model_id == id, got %q/%q", result.Models[0].ModelID, result.Models[0].ID)
 	}
-	if got := result.Models[2].ID; got != "seedream_4_5" {
-		t.Fatalf("expected seedream alias, got %q", got)
+	if got := result.Models[1].Provider; got != "blackforestlabs" {
+		t.Fatalf("expected provider to be preserved, got %q", got)
 	}
-	if got := result.Models[3].ID; got != "gpt-image-2" {
-		t.Fatalf("expected unrelated id to stay unchanged, got %q", got)
+	if got := result.Models[1].SourceCollection; got != "multi_models_new" {
+		t.Fatalf("expected source_collection to be preserved, got %q", got)
 	}
-	if got := result.Models[3].SourceID; got != "gpt-image-2" {
-		t.Fatalf("expected source id to be preserved, got %q", got)
+	if got := result.Models[1].OriginalModelID; got != "flux_2_pro" {
+		t.Fatalf("expected original_model_id to be preserved, got %q", got)
 	}
-	if !result.Models[3].HasSpec {
-		t.Fatal("expected has_spec to be preserved")
-	}
-	if got := result.Models[3].SpecProtocol; got != "queue" {
-		t.Fatalf("expected spec protocol to be preserved, got %q", got)
+	if got := result.Models[1].ModelSubtype; got != "pro" {
+		t.Fatalf("expected model_subtype to be preserved, got %q", got)
 	}
 }
 

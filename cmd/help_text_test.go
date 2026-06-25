@@ -79,6 +79,8 @@ func TestOptimizedHelpText(t *testing.T) {
 				"List available SeaCloud models with model IDs, names, types",
 				"input_modalities   Accepted input types: Text | Image | Video | Audio",
 				"output_modalities  Output types produced by the model",
+				"Filter by type (llm, image, video, audio, 3d)",
+				"Filter by provider",
 			},
 		},
 		{

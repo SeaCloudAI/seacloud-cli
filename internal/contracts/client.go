@@ -15,6 +15,7 @@ import (
 )
 
 var BaseURL = ""
+var ContractBaseURL = ""
 var SpecURL = ""
 
 const defaultTimeout = 30 * time.Second
@@ -27,9 +28,12 @@ type Client struct {
 }
 
 func NewClient() *Client {
-	base := BaseURL
-	if env := os.Getenv(modelendpoints.EnvBaseURL); env != "" {
-		base = env
+	base := modelendpoints.ConfiguredURL(ContractBaseURL, modelendpoints.EnvContractBaseURL)
+	if base == "" {
+		base = BaseURL
+		if env := os.Getenv(modelendpoints.EnvBaseURL); env != "" {
+			base = env
+		}
 	}
 	return &Client{
 		httpClient: &http.Client{Timeout: defaultTimeout},
@@ -56,7 +60,7 @@ func (c *Client) Get(modelID string) (*ModelContract, error) {
 
 func (c *Client) get(path string, out any) error {
 	if c.baseURL == "" {
-		return fmt.Errorf("models base URL not configured: set SEACLOUD_MODELS_URL or rebuild with -ldflags")
+		return fmt.Errorf("model contracts base URL not configured: set SEACLOUD_MODEL_CONTRACTS_URL or SEACLOUD_MODELS_URL")
 	}
 	return c.getURL(strings.TrimRight(c.baseURL, "/")+path, out)
 }

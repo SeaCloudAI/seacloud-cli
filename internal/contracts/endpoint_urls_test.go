@@ -49,3 +49,39 @@ func TestGetUsesConfiguredFullSpecURL(t *testing.T) {
 		t.Fatalf("expected model id gpt_image_1, got %q", contract.ModelID)
 	}
 }
+
+func TestGetUsesModelContractsBaseURLBeforeLegacyModelsURL(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Path; got != "/api/v1/skill/model-contracts/gpt_image_1" {
+			t.Fatalf("expected contract path, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"status":{"code":200,"message":"ok"},
+			"data":{
+				"schema_version":"model-contract.v1",
+				"revision":"local-1",
+				"model_id":"gpt_image_1",
+				"protocol":"queue",
+				"body_mode":"raw_json",
+				"endpoints":{"submit":{"method":"POST","path":"/model/v1/queue/gpt_image_1"}},
+				"input_schema":{"type":"object","properties":{}}
+			}
+		}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("SEACLOUD_MODEL_CONTRACTS_URL", server.URL)
+	t.Setenv("SEACLOUD_MODELS_URL", "http://127.0.0.1:1")
+	BaseURL = ""
+	ContractBaseURL = ""
+	SpecURL = ""
+
+	contract, err := NewClient().Get("gpt_image_1")
+	if err != nil {
+		t.Fatalf("Get returned error: %v", err)
+	}
+	if contract.ModelID != "gpt_image_1" {
+		t.Fatalf("expected model id gpt_image_1, got %q", contract.ModelID)
+	}
+}

@@ -32,10 +32,12 @@ type ModelContract struct {
 }
 
 type ContractEndpoints struct {
-	Submit Endpoint `json:"submit"`
-	Status Endpoint `json:"status"`
-	Result Endpoint `json:"result"`
-	Cancel Endpoint `json:"cancel"`
+	Submit          Endpoint `json:"submit"`
+	Status          Endpoint `json:"status"`
+	Result          Endpoint `json:"result"`
+	Cancel          Endpoint `json:"cancel"`
+	ChatCompletions Endpoint `json:"chat_completions"`
+	Responses       Endpoint `json:"responses"`
 }
 
 type Endpoint struct {

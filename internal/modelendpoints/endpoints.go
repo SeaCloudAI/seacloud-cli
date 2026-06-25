@@ -7,9 +7,10 @@ import (
 )
 
 const (
-	EnvBaseURL = "SEACLOUD_MODELS_URL"
-	EnvListURL = "SEACLOUD_MODELS_LIST_URL"
-	EnvSpecURL = "SEACLOUD_MODELS_SPEC_URL"
+	EnvBaseURL         = "SEACLOUD_MODELS_URL"
+	EnvContractBaseURL = "SEACLOUD_MODEL_CONTRACTS_URL"
+	EnvListURL         = "SEACLOUD_MODELS_LIST_URL"
+	EnvSpecURL         = "SEACLOUD_MODELS_SPEC_URL"
 )
 
 func ConfiguredURL(buildValue, envName string) string {

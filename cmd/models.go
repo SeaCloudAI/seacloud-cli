@@ -20,6 +20,7 @@ var modelsCmd = &cobra.Command{
 var (
 	modelsListType     string
 	modelsListKeywords string
+	modelsListProvider string
 	modelsListPage     int
 	modelsListPageSize int
 	modelsListOutput   string
@@ -33,7 +34,7 @@ var modelsListCmd = &cobra.Command{
 Output fields (--output json):
   id                 Model identifier, use this as <model_id> in "seacloud models spec <model_id>"
   name               Human-readable model name
-  type               Model type: Video | Image | Audio
+  type               Model type: llm | image | video | audio | 3d
   description        What the model does
   input_modalities   Accepted input types: Text | Image | Video | Audio
   output_modalities  Output types produced by the model
@@ -45,6 +46,7 @@ Pagination fields:
   total_pages        Total number of pages`,
 	Example: `  seacloud models list
   seacloud models list --type video
+  seacloud models list --provider blackforestlabs
   seacloud models list --keywords kirin
   seacloud models list --output id
   seacloud models list --output json`,
@@ -54,6 +56,7 @@ Pagination fields:
 			PageSize: modelsListPageSize,
 			Type:     modelsListType,
 			Keywords: modelsListKeywords,
+			Provider: modelsListProvider,
 		})
 		if err != nil {
 			return err
@@ -149,6 +152,9 @@ func buildModelsQuery() string {
 	if modelsListKeywords != "" {
 		q += "&keywords=" + modelsListKeywords
 	}
+	if modelsListProvider != "" {
+		q += "&provider=" + modelsListProvider
+	}
 	return q
 }
 
@@ -160,8 +166,9 @@ func truncate(s string, max int) string {
 }
 
 func init() {
-	modelsListCmd.Flags().StringVar(&modelsListType, "type", "", "Filter by type (video, image, audio)")
+	modelsListCmd.Flags().StringVar(&modelsListType, "type", "", "Filter by type (llm, image, video, audio, 3d)")
 	modelsListCmd.Flags().StringVar(&modelsListKeywords, "keywords", "", "Search by keyword")
+	modelsListCmd.Flags().StringVar(&modelsListProvider, "provider", "", "Filter by provider")
 	modelsListCmd.Flags().IntVar(&modelsListPage, "page", 1, "Page number")
 	modelsListCmd.Flags().IntVar(&modelsListPageSize, "page-size", 20, "Results per page")
 	modelsListCmd.Flags().StringVar(&modelsListOutput, "output", "", "Output format: id (IDs only), json (full response)")

@@ -7,9 +7,6 @@ func List(params ListParams) (*ModelsListResponse, error) {
 	if err != nil {
 		return nil, clierrors.ErrFetchModels(err)
 	}
-	for i := range result.Models {
-		result.Models[i].ID = DisplayModelID(result.Models[i].ID)
-	}
 	return result, nil
 }
 

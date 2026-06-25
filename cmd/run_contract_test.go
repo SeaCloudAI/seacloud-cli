@@ -270,7 +270,7 @@ func setupRunCommandTest(t *testing.T, serviceURL string) {
 	runOutput = ""
 	runAsyncOutput = ""
 	runTimeout = 600
-	runRefresh = false
+	runRefresh, runStream = false, false
 	taskStatusOutput = ""
 }
 

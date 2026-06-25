@@ -57,6 +57,71 @@ func TestClientOmitsAuthHeaderWithoutManagedToken(t *testing.T) {
 	}
 }
 
+func TestListUsesSkillModelsEndpointWithFiltersAndFields(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if got := r.URL.Path; got != "/api/v1/skill/models" {
+			t.Fatalf("expected skill models list path, got %q", got)
+		}
+		if got := r.URL.Query().Get("page"); got != "2" {
+			t.Fatalf("expected page=2, got %q", got)
+		}
+		if got := r.URL.Query().Get("page_size"); got != "5" {
+			t.Fatalf("expected page_size=5, got %q", got)
+		}
+		if got := r.URL.Query().Get("type"); got != "image" {
+			t.Fatalf("expected type=image, got %q", got)
+		}
+		if got := r.URL.Query().Get("keywords"); got != "flux" {
+			t.Fatalf("expected keywords=flux, got %q", got)
+		}
+		if got := r.URL.Query().Get("provider"); got != "blackforestlabs" {
+			t.Fatalf("expected provider=blackforestlabs, got %q", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"status":{"code":200,"message":"ok"},"data":{
+			"models":[{
+				"id":"flux_2_pro",
+				"model_id":"flux_2_pro",
+				"name":"FLUX.2 [pro]",
+				"type":"image",
+				"provider":"blackforestlabs",
+				"source_collection":"multi_models_new",
+				"original_model_id":"flux_2_pro",
+				"model_subtype":"pro",
+				"description":"image model",
+				"input_modalities":["Text"],
+				"output_modalities":["Image"]
+			}],
+			"total":1,"page":2,"page_size":5,"total_pages":1
+		}}`))
+	}))
+	defer server.Close()
+
+	t.Setenv("SEACLOUD_MODELS_URL", server.URL)
+	BaseURL = ""
+
+	result, err := NewClient().List(ListParams{
+		Page:     2,
+		PageSize: 5,
+		Type:     "image",
+		Keywords: "flux",
+		Provider: "blackforestlabs",
+	})
+	if err != nil {
+		t.Fatalf("List returned error: %v", err)
+	}
+	if len(result.Models) != 1 {
+		t.Fatalf("expected one model, got %#v", result.Models)
+	}
+	model := result.Models[0]
+	if model.ID != "flux_2_pro" || model.ModelID != "flux_2_pro" {
+		t.Fatalf("id/model_id = %q/%q, want flux_2_pro/flux_2_pro", model.ID, model.ModelID)
+	}
+	if model.Provider != "blackforestlabs" || model.SourceCollection != "multi_models_new" || model.OriginalModelID != "flux_2_pro" || model.ModelSubtype != "pro" {
+		t.Fatalf("model metadata = %#v, want skill model metadata preserved", model)
+	}
+}
+
 func TestListRoutesThroughFolkosProxyForVtrixModelsBaseURL(t *testing.T) {
 	originalProxyBaseURL := config.DefaultFolkosProxyBaseURL
 	config.DefaultFolkosProxyBaseURL = "https://gateway.example.com/folkos-proxy"

@@ -103,8 +103,13 @@ func (c *Client) getURL(rawURL string, out any) error {
 // Model represents a single model in the list.
 type Model struct {
 	ID               string   `json:"id"`
+	ModelID          string   `json:"model_id,omitempty"`
 	Name             string   `json:"name"`
 	Type             string   `json:"type"`
+	Provider         string   `json:"provider,omitempty"`
+	SourceCollection string   `json:"source_collection,omitempty"`
+	OriginalModelID  string   `json:"original_model_id,omitempty"`
+	ModelSubtype     string   `json:"model_subtype,omitempty"`
 	Description      string   `json:"description"`
 	InputModalities  []string `json:"input_modalities"`
 	OutputModalities []string `json:"output_modalities"`
@@ -128,6 +133,7 @@ type ListParams struct {
 	PageSize int
 	Type     string
 	Keywords string
+	Provider string
 }
 
 func (c *Client) List(params ListParams) (*ModelsListResponse, error) {
@@ -236,6 +242,9 @@ func buildQuery(params ListParams) url.Values {
 	}
 	if params.Keywords != "" {
 		q.Set("keywords", params.Keywords)
+	}
+	if params.Provider != "" {
+		q.Set("provider", params.Provider)
 	}
 	return q
 }

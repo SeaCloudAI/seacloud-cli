@@ -69,7 +69,7 @@ jobs:
           INPUT_SEACLOUD_FOLKOS_PROXY_URL: ${{ vars.SEACLOUD_FOLKOS_PROXY_URL }}
         run: |
           echo "SEACLOUD_BASE_URL=${INPUT_SEACLOUD_BASE_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}" >> "$GITHUB_ENV"
+          echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://seacloud-cloud-backgroud.dev.seaart.dev}" >> "$GITHUB_ENV"
           echo "SEACLOUD_GENERATION_URL=${INPUT_SEACLOUD_GENERATION_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
           echo "SEACLOUD_SKILLHUB_URL=${INPUT_SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}" >> "$GITHUB_ENV"
           echo "SEACLOUD_FOLKOS_PROXY_URL=${INPUT_SEACLOUD_FOLKOS_PROXY_URL:-http://folkos-gateway.dev.folkos.ai/folkos-proxy}" >> "$GITHUB_ENV"
@@ -117,7 +117,7 @@ jobs:
           INPUT_SEACLOUD_FOLKOS_PROXY_URL: ${{ vars.SEACLOUD_FOLKOS_PROXY_URL }}
         run: |
           echo "SEACLOUD_BASE_URL=${INPUT_SEACLOUD_BASE_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
-          echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://cloud-model-spec.vtrix.ai}" >> "$GITHUB_ENV"
+          echo "SEACLOUD_MODELS_URL=${INPUT_SEACLOUD_MODELS_URL:-https://seacloud-cloud-backgroud.dev.seaart.dev}" >> "$GITHUB_ENV"
           echo "SEACLOUD_GENERATION_URL=${INPUT_SEACLOUD_GENERATION_URL:-https://cloud.seaart.ai}" >> "$GITHUB_ENV"
           echo "SEACLOUD_SKILLHUB_URL=${INPUT_SEACLOUD_SKILLHUB_URL:-https://skill-hub.vtrix.ai/api/v1}" >> "$GITHUB_ENV"
           echo "SEACLOUD_FOLKOS_PROXY_URL=${INPUT_SEACLOUD_FOLKOS_PROXY_URL:-http://folkos-gateway.dev.folkos.ai/folkos-proxy}" >> "$GITHUB_ENV"

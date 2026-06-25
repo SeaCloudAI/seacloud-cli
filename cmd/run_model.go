@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
+	"github.com/SeaCloudAI/seacloud-cli/internal/llm"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/SeaCloudAI/seacloud-cli/internal/queue"
 )
@@ -57,6 +59,9 @@ func dryRunModel(modelID string, raw map[string]string) error {
 }
 
 func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[string]string) error {
+	if isLLMContract(contract) {
+		return dryRunLLMContract(modelID, contract, raw)
+	}
 	raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
 	params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
 	if err != nil {
@@ -84,6 +89,8 @@ func runWithContract(apiKey, modelID string, contract *contracts.ModelContract, 
 			return err
 		}
 		return runQueueContract(apiKey, contract, params)
+	case isLLMContract(contract):
+		return runLLMContract(apiKey, modelID, contract, raw)
 	case contract.Protocol == "generation" || contract.BodyMode == "generation_wrapper":
 		return runWithLegacySpec(apiKey, modelID, models.ResolveModelID(modelID), raw)
 	default:
@@ -106,6 +113,53 @@ func runQueueContract(apiKey string, contract *contracts.ModelContract, params m
 	}
 	saveQueueProviderContext(submitted.ID, task)
 	return printQueueTask(task)
+}
+
+func runLLMContract(apiKey, modelID string, contract *contracts.ModelContract, raw map[string]string) error {
+	params, stream, err := llmParamsFromContract(modelID, contract, raw)
+	if err != nil {
+		return err
+	}
+	if err := validateLLMOutputMode(stream); err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(runTimeout)*time.Second)
+	defer cancel()
+	client := llm.NewClient(apiKey)
+	if stream {
+		options := llm.StreamOptions{}
+		if runOutput == "sse" {
+			options.Raw = os.Stdout
+		} else if runOutput == "" {
+			options.OnText = func(text string) error {
+				fmt.Print(text)
+				return nil
+			}
+		}
+		result, err := client.Stream(ctx, *contract, params, options)
+		if err != nil {
+			return err
+		}
+		if runOutput == "json" {
+			return printJSON(result)
+		}
+		if runOutput == "" {
+			fmt.Println()
+		}
+		return nil
+	}
+
+	result, err := client.Complete(ctx, *contract, params)
+	if err != nil {
+		return err
+	}
+	if runOutput == "json" {
+		fmt.Println(string(result.Raw))
+		return nil
+	}
+	fmt.Println(result.Text)
+	return nil
 }
 
 func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, requestID string) (*queue.Task, error) {

@@ -114,6 +114,7 @@ seacloud account balance --output json
 
 ```bash
 seacloud models list
+seacloud models list --provider blackforestlabs
 seacloud models spec gpt_image_2
 seacloud models spec gpt_image_2 --output json
 ```
@@ -209,6 +210,7 @@ seacloud account balance --output json
 ```bash
 seacloud models list
 seacloud models list --keywords gpt
+seacloud models list --provider blackforestlabs
 seacloud models list --output id
 seacloud models spec <model_id>
 seacloud models spec <model_id> --output json
@@ -334,6 +336,8 @@ seacloud version
 - Use `--format json` on sandbox/template commands for E2B-compatible output flag naming.
 - Use `--output url` on task commands to print only result URLs.
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
+- `seacloud models list` reads the seacloud-background skill catalog at `/api/v1/skill/models`; `seacloud models spec` and `seacloud run` read `/api/v1/skill/model-contracts/{model_id}`.
+- Set `SEACLOUD_MODELS_URL` when the model catalog and model contracts should use a non-default seacloud-background root. Set `SEACLOUD_MODEL_CONTRACTS_URL` only when contracts need a different root from the catalog.
 - Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
 - Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` only when you need a non-default sandbox API root. The default is `https://cloud.seaart.ai/api/v1`.
@@ -345,6 +349,7 @@ seacloud version
 Example:
 
 ```bash
+SEACLOUD_MODELS_URL=http://127.0.0.1:8783 SEACLOUD_MODEL_CONTRACTS_URL=http://127.0.0.1:8783 seacloud models list --page-size 5 --output json
 seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```

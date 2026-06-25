@@ -26,6 +26,9 @@ func TestListUsesConfiguredFullListURL(t *testing.T) {
 		if got := r.URL.Query().Get("keywords"); got != "cat" {
 			t.Fatalf("expected keywords=cat, got %q", got)
 		}
+		if got := r.URL.Query().Get("provider"); got != "fal" {
+			t.Fatalf("expected provider=fal, got %q", got)
+		}
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = w.Write([]byte(`{"status":{"code":200,"message":"ok"},"data":{"models":[],"total":0,"page":2,"page_size":5,"total_pages":0}}`))
 	}))
@@ -40,6 +43,7 @@ func TestListUsesConfiguredFullListURL(t *testing.T) {
 		PageSize: 5,
 		Type:     "video",
 		Keywords: "cat",
+		Provider: "fal",
 	}); err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}

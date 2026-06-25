@@ -110,6 +110,7 @@ seacloud account balance --output json
 
 ```bash
 seacloud models list
+seacloud models list --provider blackforestlabs
 seacloud models spec gpt_image_2
 seacloud models spec gpt_image_2 --output json
 ```
@@ -194,6 +195,7 @@ seacloud account balance --output json
 ```bash
 seacloud models list
 seacloud models list --keywords gpt
+seacloud models list --provider blackforestlabs
 seacloud models list --output id
 seacloud models spec <model_id>
 seacloud models spec <model_id> --output json
@@ -318,6 +320,8 @@ seacloud version
 - sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
+- `seacloud models list` 读取 seacloud-background 的 `/api/v1/skill/models` 模型目录；`seacloud models spec` 和 `seacloud run` 读取 `/api/v1/skill/model-contracts/{model_id}`。
+- 模型目录和模型合约需要切换到非默认 seacloud-background 根地址时，设置 `SEACLOUD_MODELS_URL`。只有合约根地址需要和目录分开时，才单独设置 `SEACLOUD_MODEL_CONTRACTS_URL`。
 - 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
 - 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
@@ -329,6 +333,7 @@ seacloud version
 示例：
 
 ```bash
+SEACLOUD_MODELS_URL=http://127.0.0.1:8783 SEACLOUD_MODEL_CONTRACTS_URL=http://127.0.0.1:8783 seacloud models list --page-size 5 --output json
 seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```

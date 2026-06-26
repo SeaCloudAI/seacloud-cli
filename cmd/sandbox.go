@@ -1511,7 +1511,7 @@ func boolPtrIfTrue(value bool) *bool {
 }
 
 func init() {
-	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/v1)")
+	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/sandbox/v1)")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.namespaceID, "namespace", "", "Sandbox namespace ID")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.userID, "user-id", "", "User ID header for sandbox APIs")
 	sandboxCmd.PersistentFlags().StringVar(&sandboxOpts.projectID, "project-id", "", "Project/team ID header for sandbox APIs")

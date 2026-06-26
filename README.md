@@ -336,7 +336,7 @@ seacloud version
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
 - Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
-- Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` only when you need a non-default sandbox API root. The default is `https://cloud.seaart.ai/api/v1`.
+- Set `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin. Sandbox commands use the same origin and normalize to `https://cloud.seaart.ai/api/sandbox/v1` by default.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.
 - Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.

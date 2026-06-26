@@ -320,7 +320,7 @@ seacloud version
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
 - 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
-- 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
+- 需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`。sandbox 命令使用同一个主地址，并默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。

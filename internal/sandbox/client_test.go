@@ -11,10 +11,10 @@ import (
 func TestResolveBaseURLAddsAPIV1ForGatewayRoot(t *testing.T) {
 	t.Setenv(EnvSandboxURL, "")
 	t.Setenv("SEACLOUD_BASE_URL", "")
-	if got := resolveBaseURL(""); got != "https://cloud.seaart.ai/api/v1" {
+	if got := resolveBaseURL(""); got != "https://cloud.seaart.ai/api/sandbox/v1" {
 		t.Fatalf("expected default cloud api root, got %q", got)
 	}
-	if got := resolveBaseURL("https://gateway.example.com/"); got != "https://gateway.example.com/api/v1" {
+	if got := resolveBaseURL("https://gateway.example.com/"); got != "https://gateway.example.com/api/sandbox/v1" {
 		t.Fatalf("expected api root, got %q", got)
 	}
 	if got := resolveBaseURL("https://gateway.example.com/api/v1/sandbox"); got != "https://gateway.example.com/api/v1/sandbox" {
@@ -23,7 +23,7 @@ func TestResolveBaseURLAddsAPIV1ForGatewayRoot(t *testing.T) {
 	if got := resolveBaseURL("https://gateway.example.com/api/sandbox/v1"); got != "https://gateway.example.com/api/sandbox/v1" {
 		t.Fatalf("expected web proxy api root to stay unchanged, got %q", got)
 	}
-	if got := resolveBaseURL("https://gateway.example.com/api/v12"); got != "https://gateway.example.com/api/v12/api/v1" {
+	if got := resolveBaseURL("https://gateway.example.com/api/v12"); got != "https://gateway.example.com/api/v12/api/sandbox/v1" {
 		t.Fatalf("expected non-v1 path to be extended, got %q", got)
 	}
 }
@@ -66,7 +66,7 @@ func TestUpdateNetworkUsesAPIPathHeadersAndEscapedSandboxID(t *testing.T) {
 		t.Fatalf("UpdateNetwork returned error: %v", err)
 	}
 
-	if gotPath != "/api/v1/sandboxes/sb%2F1/network" {
+	if gotPath != "/api/sandbox/v1/sandboxes/sb%2F1/network" {
 		t.Fatalf("unexpected path %q", gotPath)
 	}
 	if gotAuth != "Bearer unit-token" || gotAPIKey != "" {

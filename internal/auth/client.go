@@ -12,6 +12,7 @@ import (
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
 	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
+	"github.com/SeaCloudAI/seacloud-cli/internal/netresolve"
 )
 
 // BaseURL can be overridden at build time via ldflags:
@@ -19,9 +20,10 @@ import (
 //	go build -ldflags "-X github.com/SeaCloudAI/seacloud-cli/internal/auth.BaseURL=https://cloud.seaart.ai"
 //
 // Or at runtime via the SEACLOUD_BASE_URL environment variable.
-var BaseURL = ""
+var BaseURL = "https://cloud.seaart.ai"
 
 const AppID = "@seacloud/cli"
+const defaultHTTPTimeout = 45 * time.Second
 
 type Client struct {
 	httpClient *http.Client
@@ -35,7 +37,7 @@ func NewClient(token string) *Client {
 		base = env
 	}
 	return &Client{
-		httpClient: &http.Client{Timeout: 15 * time.Second},
+		httpClient: &http.Client{Timeout: defaultHTTPTimeout, Transport: netresolve.NewTransport(nil)},
 		token:      token,
 		baseURL:    base,
 	}

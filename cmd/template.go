@@ -885,7 +885,7 @@ seacloud template build %s
 
 func init() {
 	templateCmd.PersistentFlags().StringVar(&templateOpts.output, "format", "", "Output format: json or table (default table)")
-	templateCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/v1)")
+	templateCmd.PersistentFlags().StringVar(&sandboxOpts.baseURL, "base-url", "", "Sandbox API base URL (default: https://cloud.seaart.ai/api/sandbox/v1)")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.namespaceID, "namespace", "", "Sandbox namespace ID")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.userID, "user-id", "", "User ID header for sandbox APIs")
 	templateCmd.PersistentFlags().StringVar(&sandboxOpts.projectID, "project-id", "", "Project/team ID header for sandbox APIs")

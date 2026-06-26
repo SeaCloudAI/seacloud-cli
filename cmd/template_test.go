@@ -87,18 +87,18 @@ func TestBuildTemplateWithClientUsesAuthToken(t *testing.T) {
 		authHeaders = append(authHeaders, r.Header.Get("Authorization"))
 		apiKeyHeaders = append(apiKeyHeaders, r.Header.Get("X-API-Key"))
 		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/api/v1/templates":
+		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/templates":
 			sawTemplateCreate = true
 			if err := json.NewDecoder(r.Body).Decode(&createBody); err != nil {
 				t.Fatalf("decode create body: %v", err)
 			}
 			w.WriteHeader(http.StatusAccepted)
 			_, _ = w.Write([]byte(`{"templateID":"tpl-1","buildID":"build-initial","names":["demo"],"tags":["v1"],"public":false}`))
-		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/v1/templates/tpl-1/builds/build-"):
+		case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/api/sandbox/v1/templates/tpl-1/builds/build-"):
 			sawBuildCreate = true
 			w.WriteHeader(http.StatusAccepted)
 			_, _ = w.Write([]byte(`{}`))
-		case r.Method == http.MethodGet && r.URL.Path == "/api/v1/templates/tpl-1":
+		case r.Method == http.MethodGet && r.URL.Path == "/api/sandbox/v1/templates/tpl-1":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"templateID":"tpl-1","buildID":"build-initial","names":["demo"],"public":false}`))
 		default:

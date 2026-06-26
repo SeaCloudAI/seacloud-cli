@@ -50,7 +50,7 @@ func Login(openBrowser func(url string) error) (string, string, string, error) {
 		return "", "", "", fmt.Errorf("failed to connect to SeaCloud: %w", err)
 	}
 
-	authURL := buildVerificationURL(dc.VerificationURI, dc.UserCode)
+	authURL := buildVerificationURL(dc.VerificationURI, dc.UserCode, client.baseURL)
 
 	fmt.Printf("\nURL:  %s\n", authURL)
 	fmt.Printf("Code: %s\n\n", dc.UserCode)
@@ -110,7 +110,7 @@ func VerifyToken(token string) (*MeResponse, error) {
 	return NewClient(token).Me()
 }
 
-func buildVerificationURL(verificationURI, userCode string) string {
+func buildVerificationURL(verificationURI, userCode, baseURL string) string {
 	if verificationURI == "" || userCode == "" {
 		return verificationURI
 	}
@@ -118,6 +118,12 @@ func buildVerificationURL(verificationURI, userCode string) string {
 	u, err := url.Parse(verificationURI)
 	if err != nil {
 		return verificationURI
+	}
+	if baseURL != "" {
+		if base, err := url.Parse(baseURL); err == nil && base.Scheme != "" && base.Host != "" {
+			u.Scheme = base.Scheme
+			u.Host = base.Host
+		}
 	}
 
 	q := u.Query()

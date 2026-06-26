@@ -8,8 +8,9 @@
     SeaCloud CLI is a multimodal task execution CLI designed specifically for
     Agents. With one SeaCloud API Key, it provides unified access to LLM, image,
     video, audio, 3D, and other models; supports model search, spec queries, task
-    execution, and result tracking; and helps discover and manage professional
-    skills for creative workflows through SkillHub.
+    execution, and result tracking; manages cloud sandboxes and templates for
+    agent workloads; and helps discover and manage professional skills for
+    creative workflows through SkillHub.
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">
@@ -33,6 +34,7 @@
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
 - **Image model execution**: Generate images through `seacloud run` or submit image tasks asynchronously with `seacloud run-async`.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
+- **Sandbox workloads**: Create, connect to, execute commands in, observe, and clean up SeaCloud sandboxes with E2B-compatible command shapes.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, output limits, actionable errors, stable command shapes, and copy-pasteable examples.
 
@@ -174,7 +176,7 @@ seacloud skills config --show
 ```bash
 seacloud sandbox create base
 seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --format json
+seacloud sandbox list --state running,paused --output json
 seacloud sandbox exec <sandbox_id> ls -la
 seacloud sandbox connect <sandbox_id>
 seacloud sandbox kill <sandbox_id>
@@ -276,6 +278,7 @@ seacloud sandbox metrics <sandbox_id_1> <sandbox_id_2> --output json
 SeaCloud sandbox API features exposed by the SDKs are also available:
 
 ```bash
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent --timeout 3600
 seacloud sandbox create base --auto-resume --allow-internet-access=false --allow-out 1.1.1.1 --volume-mount cache:/cache
 seacloud sandbox network update <sandbox_id> --allow-public-traffic=true --deny-out 10.0.0.0/8
 seacloud sandbox logs <sandbox_id> --limit 100 --direction backward
@@ -300,6 +303,25 @@ seacloud sandbox observability
 ```
 
 `seacloud sandbox create <template>` follows E2B's interactive behavior when run in a terminal: it creates the sandbox, connects a shell, and kills the sandbox when the shell exits. Use `--no-connect` or `--output json` for automation.
+
+Recommended automation flow:
+
+```bash
+seacloud auth status
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud sandbox logs <sandbox_id> --limit 100 --direction backward --output json
+seacloud sandbox metrics <sandbox_id> --output json
+seacloud --dry-run sandbox kill <sandbox_id>
+seacloud sandbox kill <sandbox_id>
+```
+
+For bulk cleanup, always preview filters first:
+
+```bash
+seacloud --dry-run sandbox kill --all --state running,paused --metadata app=agent
+seacloud sandbox kill --all --state running,paused --metadata app=agent
+```
 
 ### `seacloud template`
 
@@ -336,6 +358,7 @@ seacloud version
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
 - Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
+- For agent automation, create sandboxes with `--no-connect --wait --output json`, keep the returned sandbox ID, and clean it up explicitly with `seacloud sandbox kill <sandbox_id>`.
 - Set `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin. Sandbox commands use the same origin and normalize to `https://cloud.seaart.ai/api/sandbox/v1` by default.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.

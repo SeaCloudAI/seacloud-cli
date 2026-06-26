@@ -6,8 +6,8 @@
   <h3>SeaCloud AI 平台的官方命令行界面</h3>
   <p>
     SeaCloud CLI 是专为 Agent 设计的多模态任务执行 CLI，可通过一个 API Key
-    统一调用 LLM、图像、视频、音频、3D 等模型，支持模型查找、规格查询、任务执行、结果追踪，并通过
-    SkillHub 发现和管理面向创意工作流的专业技能。
+    统一调用 LLM、图像、视频、音频、3D 等模型，支持模型查找、规格查询、任务执行、结果追踪，管理用于
+    Agent 工作负载的云端沙箱和模板，并通过 SkillHub 发现和管理面向创意工作流的专业技能。
   </p>
   <p>
     <a href="https://www.npmjs.com/package/@seacloudai/seacloud-cli">
@@ -31,6 +31,7 @@
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
 - **图片模型执行**：通过 `seacloud run` 生成图片，或使用 `seacloud run-async` 异步提交图片任务。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
+- **沙箱工作负载**：用 E2B 兼容的命令形态创建、连接、执行、观测和清理 SeaCloud 沙箱。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、输出限量、可操作错误、稳定命令结构和可直接复制的示例。
 
@@ -159,7 +160,7 @@ seacloud skills config --show
 ```bash
 seacloud sandbox create base
 seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --format json
+seacloud sandbox list --state running,paused --output json
 seacloud sandbox exec <sandbox_id> ls -la
 seacloud sandbox connect <sandbox_id>
 seacloud sandbox kill <sandbox_id>
@@ -260,6 +261,7 @@ seacloud sandbox metrics <sandbox_id_1> <sandbox_id_2> --output json
 三端 SDK 已支持的 SeaCloud 沙箱能力也已暴露到 CLI：
 
 ```bash
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent --timeout 3600
 seacloud sandbox create base --auto-resume --allow-internet-access=false --allow-out 1.1.1.1 --volume-mount cache:/cache
 seacloud sandbox network update <sandbox_id> --allow-public-traffic=true --deny-out 10.0.0.0/8
 seacloud sandbox logs <sandbox_id> --limit 100 --direction backward
@@ -284,6 +286,25 @@ seacloud sandbox observability
 ```
 
 `seacloud sandbox create <template>` 在交互终端中会按 E2B 习惯工作：创建沙箱、连接 shell、退出 shell 后删除沙箱。脚本化创建请使用 `--no-connect` 或 `--output json`。
+
+推荐的自动化流程：
+
+```bash
+seacloud auth status
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud sandbox logs <sandbox_id> --limit 100 --direction backward --output json
+seacloud sandbox metrics <sandbox_id> --output json
+seacloud --dry-run sandbox kill <sandbox_id>
+seacloud sandbox kill <sandbox_id>
+```
+
+批量清理前应先预览筛选条件：
+
+```bash
+seacloud --dry-run sandbox kill --all --state running,paused --metadata app=agent
+seacloud sandbox kill --all --state running,paused --metadata app=agent
+```
 
 ### `seacloud template`
 
@@ -320,6 +341,7 @@ seacloud version
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
 - 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
+- Agent 自动化场景建议使用 `--no-connect --wait --output json` 创建沙箱，保存返回的 sandbox ID，并用 `seacloud sandbox kill <sandbox_id>` 显式清理。
 - 需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`。sandbox 命令使用同一个主地址，并默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。

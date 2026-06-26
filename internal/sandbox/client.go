@@ -14,6 +14,7 @@ import (
 	"github.com/SeaCloudAI/sandbox-go/control"
 	"github.com/SeaCloudAI/sandbox-go/core"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
+	"github.com/SeaCloudAI/seacloud-cli/internal/netresolve"
 )
 
 const EnvSandboxURL = "SEACLOUD_SANDBOX_URL"
@@ -134,7 +135,7 @@ func normalizeAPIBaseURL(value string) string {
 		strings.Contains(value, "/api/sandbox/v1/") {
 		return value
 	}
-	return value + "/api/v1"
+	return value + "/api/sandbox/v1"
 }
 
 func firstNonEmpty(values ...string) string {
@@ -162,7 +163,7 @@ func accessTokenHTTPClient(token string, timeout time.Duration) *http.Client {
 	}
 	return &http.Client{
 		Timeout:   timeout,
-		Transport: accessTokenRoundTripper{token: strings.TrimSpace(token), base: http.DefaultTransport},
+		Transport: accessTokenRoundTripper{token: strings.TrimSpace(token), base: netresolve.NewTransport(nil)},
 	}
 }
 

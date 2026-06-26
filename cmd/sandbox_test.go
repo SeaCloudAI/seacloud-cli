@@ -1,12 +1,97 @@
 package cmd
 
 import (
+	"context"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"testing"
 
 	"github.com/SeaCloudAI/sandbox-go/control"
+	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/spf13/cobra"
 )
+
+func saveLoginConfigForSandboxTest(t *testing.T, authToken, refreshToken, apiKey string) {
+	t.Helper()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("SEACLOUD_NO_KEYCHAIN", "1")
+	t.Setenv(config.EnvFolkosExecToken, "")
+	t.Setenv(config.EnvSeaCloudRuntime, "")
+	if err := config.Save(&config.Config{AuthToken: authToken, RefreshToken: refreshToken, APIKey: apiKey}); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+}
+
+func TestNewSandboxClientUsesStoredLoginAuthToken(t *testing.T) {
+	originalOpts := sandboxOpts
+	t.Cleanup(func() { sandboxOpts = originalOpts })
+
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "legacy-api-key")
+	sandboxOpts.baseURL = "https://gateway.example.com"
+
+	client, err := newSandboxClient()
+	if err != nil {
+		t.Fatalf("newSandboxClient returned error: %v", err)
+	}
+	if client.AuthToken() != "login-auth-token" {
+		t.Fatalf("expected login auth token, got %q", client.AuthToken())
+	}
+	if client.BaseURL() != "https://gateway.example.com/api/sandbox/v1" {
+		t.Fatalf("unexpected base URL %q", client.BaseURL())
+	}
+}
+
+func TestSandboxListCommandUsesStoredLoginAuthorizationHeader(t *testing.T) {
+	originalOpts := sandboxOpts
+	originalListOpts := sandboxListOpts
+	originalDryRun := dryRun
+	t.Cleanup(func() {
+		sandboxOpts = originalOpts
+		sandboxListOpts = originalListOpts
+		dryRun = originalDryRun
+	})
+	t.Setenv("SEACLOUD_API_KEY", "env-api-key-should-not-be-used")
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "stored-api-key-should-not-be-used")
+
+	var gotAuth string
+	var gotAPIKey string
+	var gotPath string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotAuth = r.Header.Get("Authorization")
+		gotAPIKey = r.Header.Get("X-API-Key")
+		gotPath = r.URL.Path
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[]`))
+	}))
+	defer server.Close()
+
+	dryRun = false
+	sandboxOpts.baseURL = server.URL
+	sandboxOpts.output = "table"
+	sandboxListOpts = struct {
+		state     []string
+		metadata  []string
+		limit     int
+		nextToken string
+	}{}
+
+	cmd := &cobra.Command{Use: "list"}
+	cmd.SetContext(context.Background())
+	if err := sandboxListCmd.RunE(cmd, nil); err != nil {
+		t.Fatalf("sandbox list returned error: %v", err)
+	}
+	if gotPath != "/api/sandbox/v1/sandboxes" {
+		t.Fatalf("unexpected path %q", gotPath)
+	}
+	if gotAuth != "Bearer login-auth-token" {
+		t.Fatalf("unexpected authorization header %q", gotAuth)
+	}
+	if gotAPIKey != "" {
+		t.Fatalf("expected X-API-Key to be omitted, got %q", gotAPIKey)
+	}
+}
 
 func TestBuildCreateSandboxRequest(t *testing.T) {
 	original := sandboxCreateOpts

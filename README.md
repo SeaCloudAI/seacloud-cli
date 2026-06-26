@@ -379,7 +379,7 @@ seacloud version
 - When smoke-testing directly from source with `go run`, set the same endpoint defaults that `make build` injects, such as `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`, `SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, `SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, and `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`.
 - If the current network requires a local proxy, set standard `HTTP_PROXY` and `HTTPS_PROXY` variables before `seacloud auth login` or real model calls.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
-- For sandbox-only endpoint overrides, set `SEACLOUD_SANDBOX_URL`; set `SEACLOUD_BASE_URL` only when you intentionally need to override the shared base services from source or runtime. The sandbox default is `https://cloud.seaart.ai/api/v1`.
+- For sandbox-only endpoint overrides, set `SEACLOUD_SANDBOX_URL`. Set `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin; sandbox commands normalize it to `https://cloud.seaart.ai/api/sandbox/v1` by default.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.
 - Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.

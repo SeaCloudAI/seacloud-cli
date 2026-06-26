@@ -361,7 +361,7 @@ seacloud version
 - 直接在源码目录用 `go run` 做 smoke test 时，需要显式设置 `make build` 平时注入的默认地址，例如 `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`、`SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`、`SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev` 和 `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`。
 - 当前网络需要本地代理时，在 `seacloud auth login` 或真实模型调用前设置标准 `HTTP_PROXY`、`HTTPS_PROXY` 环境变量。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
-- 只切换沙箱 API 根地址时设置 `SEACLOUD_SANDBOX_URL`；只有确实需要在源码或运行时覆盖共享基础服务地址时，才设置 `SEACLOUD_BASE_URL`。沙箱默认地址是 `https://cloud.seaart.ai/api/v1`。
+- 只切换沙箱 API 根地址时设置 `SEACLOUD_SANDBOX_URL`。需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`；sandbox 命令默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。

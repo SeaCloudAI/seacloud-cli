@@ -94,6 +94,15 @@ func Build(cliVersion string) Description {
 				},
 			},
 			{
+				ID:      "llm",
+				Summary: "Call LLM contract models through an LLM-only command path.",
+				Commands: []CommandExample{
+					{Command: "seacloud llm run <model_id> --param key=value", Purpose: "Run an LLM model and print text."},
+					{Command: "seacloud llm run <model_id> --stream --param key=value", Purpose: "Stream LLM text as it is generated."},
+					{Command: "seacloud llm run <model_id> --param key=value --output json", Purpose: "Print the raw or aggregated LLM response as JSON."},
+				},
+			},
+			{
 				ID:      "run-async",
 				Summary: "Submit a multimodal generation request and return a task ID without waiting.",
 				Commands: []CommandExample{
@@ -147,6 +156,7 @@ func Build(cliVersion string) Description {
 					{Command: "seacloud models spec <model_id>", Purpose: "Inspect required parameters."},
 					{Command: "seacloud --dry-run run <model_id> --param key=value", Purpose: "Validate request shape."},
 					{Command: "seacloud run <model_id> --param key=value --output json", Purpose: "Submit the task."},
+					{Command: "seacloud llm run <model_id> --param key=value", Purpose: "Use this LLM-only path when the chosen model is an LLM contract."},
 					{Command: "seacloud run-async <model_id> --param key=value", Purpose: "Submit without waiting when the user wants an async task ID."},
 					{Command: "seacloud task status <task_id> --output json", Purpose: "Check task state without resubmitting."},
 				},
@@ -179,6 +189,7 @@ func Build(cliVersion string) Description {
 				Title: "Proxy and endpoint rules",
 				Details: []string{
 					"Use `seacloud run <model_id>` to submit and wait for final results.",
+					"Use `seacloud llm run <model_id>` when the selected model must be an LLM contract.",
 					"Use `seacloud run-async <model_id>` to submit only and return a task ID.",
 					"Model IDs with underscores such as `gpt_image_2` use queue contracts unless explicitly aliased.",
 					"Queue models use `SEACLOUD_GENERATION_URL` and task polling.",

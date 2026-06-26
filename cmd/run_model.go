@@ -36,7 +36,7 @@ func executeModelRun(modelID, resolvedModelID string) error {
 
 	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
 	if err == nil {
-		return runWithContract(cfg.APIKey, modelID, contract, raw)
+		return runWithContract(cfg.APIKey, cfg.AuthToken, modelID, contract, raw)
 	}
 	if errors.Is(err, contracts.ErrIncompatibleSchema) {
 		return err
@@ -44,7 +44,7 @@ func executeModelRun(modelID, resolvedModelID string) error {
 	if !errors.Is(err, contracts.ErrNotFound) {
 		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
 	}
-	return runWithContract(cfg.APIKey, modelID, contracts.Generic(modelID), raw)
+	return runWithContract(cfg.APIKey, cfg.AuthToken, modelID, contracts.Generic(modelID), raw)
 }
 
 func dryRunModel(modelID string, raw map[string]string) error {
@@ -81,18 +81,14 @@ func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[s
 	return nil
 }
 
-func runWithContract(apiKey, modelID string, contract *contracts.ModelContract, raw map[string]string) error {
+func runWithContract(apiKey, authToken, modelID string, contract *contracts.ModelContract, raw map[string]string) error {
 	switch {
 	case contract.Protocol == "queue" && contract.BodyMode == "raw_json":
-		params, err := queueParamsFromContract(modelID, contract, raw)
-		if err != nil {
-			return err
-		}
-		return runQueueContract(apiKey, contract, params)
+		return runQueueContractWithLocalFiles(apiKey, authToken, modelID, contract, raw)
 	case isLLMContract(contract):
 		return runLLMContract(apiKey, modelID, contract, raw)
 	case contract.Protocol == "generation" || contract.BodyMode == "generation_wrapper":
-		return runWithLegacySpec(apiKey, modelID, models.ResolveModelID(modelID), raw)
+		return runWithLegacySpec(apiKey, authToken, modelID, models.ResolveModelID(modelID), contract, raw)
 	default:
 		return fmt.Errorf("unsupported model contract protocol/body_mode: %s/%s", contract.Protocol, contract.BodyMode)
 	}
@@ -190,11 +186,12 @@ func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, re
 	return nil, clierrors.ErrTaskTimeout(requestID)
 }
 
-func runWithLegacySpec(apiKey, modelID, resolvedModelID string, raw map[string]string) error {
-	resp, spec, err := submitLegacyGeneration(apiKey, modelID, resolvedModelID, raw)
+func runWithLegacySpec(apiKey, authToken, modelID, resolvedModelID string, contract *contracts.ModelContract, raw map[string]string) error {
+	submitted, err := submitLegacyGenerationWithLocalFiles(apiKey, authToken, modelID, resolvedModelID, contract, raw)
 	if err != nil {
 		return clierrors.ErrSubmitFailed(err)
 	}
+	resp, spec := submitted.Response, submitted.Spec
 
 	fmt.Fprintf(os.Stderr, "Task submitted: %s\nWaiting for result...\n", resp.ID)
 	task, pollErr := generation.PollTask(apiKey, spec.API.Endpoint, resp.ID, 5*time.Second,

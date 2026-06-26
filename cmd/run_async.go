@@ -9,7 +9,6 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
-	"github.com/SeaCloudAI/seacloud-cli/internal/queue"
 	"github.com/spf13/cobra"
 )
 
@@ -70,7 +69,7 @@ func executeModelRunAsync(modelID, resolvedModelID string) error {
 
 	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
 	if err == nil {
-		return runWithContractAsync(cfg.APIKey, modelID, resolvedModelID, contract, raw)
+		return runWithContractAsync(cfg.APIKey, cfg.AuthToken, modelID, resolvedModelID, contract, raw)
 	}
 	if errors.Is(err, contracts.ErrIncompatibleSchema) {
 		return err
@@ -78,43 +77,17 @@ func executeModelRunAsync(modelID, resolvedModelID string) error {
 	if !errors.Is(err, contracts.ErrNotFound) {
 		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
 	}
-	return runWithContractAsync(cfg.APIKey, modelID, resolvedModelID, contracts.Generic(modelID), raw)
+	return runWithContractAsync(cfg.APIKey, cfg.AuthToken, modelID, resolvedModelID, contracts.Generic(modelID), raw)
 }
 
-func runWithContractAsync(apiKey, modelID, resolvedModelID string, contract *contracts.ModelContract, raw map[string]string) error {
+func runWithContractAsync(apiKey, authToken, modelID, resolvedModelID string, contract *contracts.ModelContract, raw map[string]string) error {
 	switch {
 	case contract.Protocol == "queue" && contract.BodyMode == "raw_json":
-		params, err := queueParamsFromContract(modelID, contract, raw)
-		if err != nil {
-			return err
-		}
-		client := queue.NewClient(apiKey)
-		submitted, err := client.Submit(*contract, params)
-		if err != nil {
-			return clierrors.ErrSubmitFailed(err)
-		}
-		saveQueueSubmission(contract, submitted.ID)
-		return printAsyncSubmission(asyncSubmission{
-			TaskID:   submitted.ID,
-			ModelID:  asyncModelID(modelID, contract.ModelID),
-			Status:   "submitted",
-			Protocol: "queue",
-			Next:     nextTaskStatusCommand(submitted.ID),
-		})
+		return runQueueContractAsyncWithLocalFiles(apiKey, authToken, modelID, contract, raw)
 	case isLLMContract(contract):
 		return fmt.Errorf("LLM contracts do not support run-async because they return synchronous HTTP/SSE responses")
 	case contract.Protocol == "generation" || contract.BodyMode == "generation_wrapper":
-		resp, _, err := submitLegacyGeneration(apiKey, modelID, resolvedModelID, raw)
-		if err != nil {
-			return clierrors.ErrSubmitFailed(err)
-		}
-		return printAsyncSubmission(asyncSubmission{
-			TaskID:   resp.ID,
-			ModelID:  modelID,
-			Status:   "submitted",
-			Protocol: "generation",
-			Next:     nextTaskStatusCommand(resp.ID),
-		})
+		return runLegacyAsyncWithLocalFiles(apiKey, authToken, modelID, resolvedModelID, contract, raw)
 	default:
 		return fmt.Errorf("unsupported model contract protocol/body_mode: %s/%s", contract.Protocol, contract.BodyMode)
 	}

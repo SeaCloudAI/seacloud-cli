@@ -30,6 +30,7 @@
 - **模型发现**：列出可用模型，并以可读文本或 JSON 查看完整参数规格。
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
 - **图片模型执行**：通过 `seacloud run` 生成图片，或使用 `seacloud run-async` 异步提交图片任务。
+- **LLM 模型执行**：当命令必须只接受 LLM 模型时，使用 `seacloud llm run`。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、输出限量、可操作错误、稳定命令结构和可直接复制的示例。
@@ -129,6 +130,24 @@ seacloud run gpt_image_2 \
 请使用 `seacloud models list` 返回的模型 ID，并在执行前通过
 `seacloud models spec <model_id>` 查看该模型的准确参数合约。
 
+### 只执行 LLM 模型
+
+```bash
+seacloud llm run claude-opus-4-6 \
+  --param messages='[{"role":"user","content":"hello"}]'
+
+seacloud llm run claude-opus-4-6 \
+  --stream \
+  --param messages='[{"role":"user","content":"hello"}]'
+```
+
+`seacloud llm run` 只接受 LLM 合约模型。图片、视频、音频、3D、队列或
+legacy generation 模型继续使用 `seacloud run <model_id>`。
+
+`claude-opus-4-6` 是已验证可真实调用的 LLM smoke-test 模型。为了控制测试成本，
+可以加 `--param max_tokens=8` 获取短回复；自动化需要结构化输出时使用
+`--output json` 或 `--output sse`。
+
 ### 只提交任务，不等待结果
 
 ```bash
@@ -215,6 +234,20 @@ seacloud run some_model \
   --param camera_control.type=simple \
   --param camera_control.speed=2
 ```
+
+### `seacloud llm run`
+
+```bash
+seacloud llm run claude-opus-4-6 --param messages='[{"role":"user","content":"hello"}]'
+seacloud llm run claude-opus-4-6 --stream --param messages='[{"role":"user","content":"hello"}]'
+seacloud llm run gpt_5_mini --param input=hello --output json
+```
+
+这是 `seacloud run` 现有合约驱动 LLM 执行链路的 LLM-only 入口。
+
+`claude-opus-4-6` 会解析为 `model-contract.v1` LLM 合约，协议为
+`llm_chat_completions`，body mode 为 `openai_chat_json`。非流式调用返回
+`chat.completion`；流式调用返回 SSE chunk，并以 `data: [DONE]` 结束。
 
 ### `seacloud task`
 
@@ -319,12 +352,16 @@ seacloud version
 - 在支持的命令上使用 `--output json` 获取机器可读输出。
 - sandbox/template 命令也支持 `--format json`，用于兼容 E2B 的输出参数命名。
 - 在任务命令上使用 `--output url` 只打印结果 URL。
+- 当所选模型必须是 LLM 合约模型时，使用 `seacloud llm run <model_id>`。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
-- `seacloud models list` 读取 seacloud-background 的 `/api/v1/skill/models` 模型目录；`seacloud models spec` 和 `seacloud run` 读取 `/api/v1/skill/model-contracts/{model_id}`。
+- `seacloud models list` 读取 seacloud-background 的 `/api/v1/skill/models` 模型目录；`seacloud models spec`、`seacloud run` 和 `seacloud llm run` 读取 `/api/v1/skill/model-contracts/{model_id}`。
 - 模型目录和模型合约需要切换到非默认 seacloud-background 根地址时，设置 `SEACLOUD_MODELS_URL`。只有合约根地址需要和目录分开时，才单独设置 `SEACLOUD_MODEL_CONTRACTS_URL`。
+- LLM chat-completions 调用需要切换到非默认 LLM API 根地址时，设置 `SEACLOUD_LLM_URL`。
 - 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
+- 直接在源码目录用 `go run` 做 smoke test 时，需要显式设置 `make build` 平时注入的默认地址，例如 `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`、`SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`、`SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev` 和 `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`。
+- 当前网络需要本地代理时，在 `seacloud auth login` 或真实模型调用前设置标准 `HTTP_PROXY`、`HTTPS_PROXY` 环境变量。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
-- 只有需要切换沙箱 API 根地址时才设置 `SEACLOUD_SANDBOX_URL` 或 `SEACLOUD_BASE_URL`。默认地址是 `https://cloud.seaart.ai/api/v1`。
+- 只切换沙箱 API 根地址时设置 `SEACLOUD_SANDBOX_URL`；只有确实需要在源码或运行时覆盖共享基础服务地址时，才设置 `SEACLOUD_BASE_URL`。沙箱默认地址是 `https://cloud.seaart.ai/api/v1`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。

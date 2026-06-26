@@ -32,6 +32,7 @@
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
 - **Image model execution**: Generate images through `seacloud run` or submit image tasks asynchronously with `seacloud run-async`.
+- **LLM model execution**: Use `seacloud llm run` when a command must accept only LLM contract models.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, output limits, actionable errors, stable command shapes, and copy-pasteable examples.
@@ -144,6 +145,24 @@ seacloud run pixverse_v6_t2v \
 Use model IDs returned by `seacloud models list`, then inspect the exact
 parameter contract with `seacloud models spec <model_id>` before running.
 
+### Run an LLM model only
+
+```bash
+seacloud llm run claude-opus-4-6 \
+  --param messages='[{"role":"user","content":"hello"}]'
+
+seacloud llm run claude-opus-4-6 \
+  --stream \
+  --param messages='[{"role":"user","content":"hello"}]'
+```
+
+`seacloud llm run` accepts only LLM contracts. Use `seacloud run <model_id>`
+for image, video, audio, 3D, queue, or legacy generation models.
+
+`claude-opus-4-6` is a verified LLM smoke-test model. Add
+`--param max_tokens=8` for a short, low-cost test response, and use
+`--output json` or `--output sse` when automation needs structured output.
+
 ### Submit without waiting
 
 ```bash
@@ -231,6 +250,22 @@ seacloud run some_model \
   --param camera_control.type=simple \
   --param camera_control.speed=2
 ```
+
+### `seacloud llm run`
+
+```bash
+seacloud llm run claude-opus-4-6 --param messages='[{"role":"user","content":"hello"}]'
+seacloud llm run claude-opus-4-6 --stream --param messages='[{"role":"user","content":"hello"}]'
+seacloud llm run gpt_5_mini --param input=hello --output json
+```
+
+This is an LLM-only wrapper around the same contract-driven LLM execution path
+used by `seacloud run`.
+
+`claude-opus-4-6` resolves to a `model-contract.v1` LLM contract with
+`llm_chat_completions` and `openai_chat_json`. Non-streaming calls return a
+`chat.completion` response; streaming calls return SSE chunks ending with
+`data: [DONE]`.
 
 ### `seacloud task`
 
@@ -335,12 +370,16 @@ seacloud version
 - Use `--output json` where supported for machine-readable responses.
 - Use `--format json` on sandbox/template commands for E2B-compatible output flag naming.
 - Use `--output url` on task commands to print only result URLs.
+- Use `seacloud llm run <model_id>` when the selected model must be an LLM contract.
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
-- `seacloud models list` reads the seacloud-background skill catalog at `/api/v1/skill/models`; `seacloud models spec` and `seacloud run` read `/api/v1/skill/model-contracts/{model_id}`.
+- `seacloud models list` reads the seacloud-background skill catalog at `/api/v1/skill/models`; `seacloud models spec`, `seacloud run`, and `seacloud llm run` read `/api/v1/skill/model-contracts/{model_id}`.
 - Set `SEACLOUD_MODELS_URL` when the model catalog and model contracts should use a non-default seacloud-background root. Set `SEACLOUD_MODEL_CONTRACTS_URL` only when contracts need a different root from the catalog.
+- Set `SEACLOUD_LLM_URL` when LLM chat-completions calls should use a non-default LLM API root.
 - Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
+- When smoke-testing directly from source with `go run`, set the same endpoint defaults that `make build` injects, such as `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`, `SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, `SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, and `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`.
+- If the current network requires a local proxy, set standard `HTTP_PROXY` and `HTTPS_PROXY` variables before `seacloud auth login` or real model calls.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
-- Set `SEACLOUD_SANDBOX_URL` or `SEACLOUD_BASE_URL` only when you need a non-default sandbox API root. The default is `https://cloud.seaart.ai/api/v1`.
+- For sandbox-only endpoint overrides, set `SEACLOUD_SANDBOX_URL`; set `SEACLOUD_BASE_URL` only when you intentionally need to override the shared base services from source or runtime. The sandbox default is `https://cloud.seaart.ai/api/v1`.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.
 - Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.

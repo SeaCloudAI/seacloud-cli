@@ -28,6 +28,7 @@ Agent path:
   seacloud account balance --output json
   seacloud models list --output json
   seacloud models spec <model_id> --output json
+  seacloud llm run <model_id> --param key=value --output json
   seacloud run <model_id> --param key=value --output json
   seacloud run-async <model_id> --param key=value
   seacloud sandbox --help
@@ -52,6 +53,7 @@ func init() {
 	rootCmd.AddCommand(authCmd)
 	rootCmd.AddCommand(accountCmd)
 	rootCmd.AddCommand(modelsCmd)
+	rootCmd.AddCommand(llmCmd)
 	rootCmd.AddCommand(runCmd)
 	rootCmd.AddCommand(runAsyncCmd)
 	rootCmd.AddCommand(taskCmd)

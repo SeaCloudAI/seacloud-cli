@@ -22,6 +22,12 @@ func TestAgentDescribePrintsGuide(t *testing.T) {
 		"seacloud --dry-run run <model_id> --param key=value",
 		"seacloud run-async <model_id> --param key=value",
 		"seacloud task status <task_id> --output json",
+		"seacloud sandbox create base --no-connect --wait --output json --metadata app=agent",
+		"seacloud sandbox webhook replay <delivery_id>",
+		"seacloud sandbox team metrics-max <team_id> --metric concurrent_sandboxes",
+		"seacloud sandbox observability",
+		"seacloud template tags assign my-template:v1 production stable",
+		"Sandbox and template safety rules",
 		"https://cloud.seaart.ai/settings/credits",
 	} {
 		if !strings.Contains(stdout, text) {

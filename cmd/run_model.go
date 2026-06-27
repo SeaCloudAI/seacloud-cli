@@ -62,15 +62,8 @@ func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[s
 	if isLLMContract(contract) {
 		return dryRunLLMContract(modelID, contract, raw)
 	}
-	raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
-	params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
+	params, err := queueParamsFromContract(modelID, contract, raw)
 	if err != nil {
-		return err
-	}
-	if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
-		return err
-	}
-	if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
 		return err
 	}
 	body, _ := json.Marshal(params)

@@ -113,6 +113,84 @@ func TestValidateAndCoerceExpandsNestedObjectParams(t *testing.T) {
 	}
 }
 
+func TestValidateAndCoerceAllowsEnumStringWhenFormatWouldReject(t *testing.T) {
+	schema := InputSchema{
+		Type:                 "object",
+		AdditionalProperties: boolPtr(false),
+		Properties: map[string]InputSchema{
+			"output_format": {
+				Type:   "string",
+				Enum:   []any{"url", "hex"},
+				Format: "uri",
+			},
+		},
+	}
+
+	got, err := ValidateAndCoerce("minimax_speech_28_turbo", map[string]string{
+		"output_format": "url",
+	}, schema)
+	if err != nil {
+		t.Fatalf("ValidateAndCoerce returned error: %v", err)
+	}
+	if got["output_format"] != "url" {
+		t.Fatalf("expected output_format=url, got %#v", got["output_format"])
+	}
+}
+
+func TestValidateAndCoerceAllowsEnumStringInJSONObjectWhenFormatWouldReject(t *testing.T) {
+	schema := InputSchema{
+		Type:                 "object",
+		AdditionalProperties: boolPtr(false),
+		Properties: map[string]InputSchema{
+			"audio_setting": {
+				Type:                 "object",
+				AdditionalProperties: boolPtr(false),
+				Properties: map[string]InputSchema{
+					"output_format": {
+						Type:   "string",
+						Enum:   []any{"url", "hex"},
+						Format: "uri",
+					},
+				},
+			},
+		},
+	}
+
+	got, err := ValidateAndCoerce("minimax_speech_28_turbo", map[string]string{
+		"audio_setting": `{"output_format":"url"}`,
+	}, schema)
+	if err != nil {
+		t.Fatalf("ValidateAndCoerce returned error: %v", err)
+	}
+	audioSetting, ok := got["audio_setting"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected audio_setting object, got %#v", got["audio_setting"])
+	}
+	if audioSetting["output_format"] != "url" {
+		t.Fatalf("expected output_format=url, got %#v", audioSetting["output_format"])
+	}
+}
+
+func TestValidateAndCoerceStillRejectsURIFormatWithoutEnumMatch(t *testing.T) {
+	schema := InputSchema{
+		Type:                 "object",
+		AdditionalProperties: boolPtr(false),
+		Properties: map[string]InputSchema{
+			"image": {
+				Type:   "string",
+				Format: "uri",
+			},
+		},
+	}
+
+	_, err := ValidateAndCoerce("image_model", map[string]string{
+		"image": "not-a-url",
+	}, schema)
+	if err == nil || !strings.Contains(err.Error(), "expected a valid URL") {
+		t.Fatalf("expected URI format rejection, got %v", err)
+	}
+}
+
 func boolPtr(v bool) *bool {
 	return &v
 }

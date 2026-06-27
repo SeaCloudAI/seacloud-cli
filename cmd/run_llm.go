@@ -30,13 +30,13 @@ func llmParamsFromContract(modelID string, contract *contracts.ModelContract, ra
 	}
 	params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
 	if err != nil {
-		return nil, false, err
+		return nil, false, withContractExamplesHint(modelID, contract, err)
 	}
 	if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
-		return nil, false, err
+		return nil, false, withContractExamplesHint(modelID, contract, err)
 	}
 	if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
-		return nil, false, err
+		return nil, false, withContractExamplesHint(modelID, contract, err)
 	}
 	params["model"] = llmModelID(modelID, contract.ModelID)
 	if stream {

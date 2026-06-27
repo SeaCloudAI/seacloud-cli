@@ -129,20 +129,8 @@ func Build(cliVersion string) Description {
 					{Command: "seacloud skills config --show", Purpose: "Show SkillHub configuration."},
 				},
 			},
-			{
-				ID:      "sandbox",
-				Summary: "Manage SeaCloud sandbox workloads after seacloud auth login. Use command help for detailed subcommands.",
-				Commands: []CommandExample{
-					{Command: "seacloud sandbox --help", Purpose: "Inspect sandbox commands and flags."},
-				},
-			},
-			{
-				ID:      "template",
-				Summary: "Manage SeaCloud templates after seacloud auth login. Use command help for detailed subcommands.",
-				Commands: []CommandExample{
-					{Command: "seacloud template --help", Purpose: "Inspect template commands and flags."},
-				},
-			},
+			sandboxCapability(),
+			templateCapability(),
 		},
 		Workflows: []Workflow{
 			{
@@ -161,6 +149,7 @@ func Build(cliVersion string) Description {
 					{Command: "seacloud task status <task_id> --output json", Purpose: "Check task state without resubmitting."},
 				},
 			},
+			sandboxAutomationWorkflow(),
 		},
 		ParameterRules: []Rule{
 			{
@@ -183,6 +172,7 @@ func Build(cliVersion string) Description {
 					"Use --format json on sandbox/template commands that expose E2B-compatible output flags.",
 				},
 			},
+			sandboxTemplateSafetyRule(),
 		},
 		EndpointRules: []Rule{
 			{

@@ -125,8 +125,10 @@ func coerce(modelID, key, value string, raw map[string]string, schema InputSchem
 		if err := checkPattern(modelID, key, value, schema); err != nil {
 			return nil, err
 		}
-		if err := checkFormat(modelID, key, value, schema); err != nil {
-			return nil, err
+		if shouldValidateStringFormat(value, schema) {
+			if err := checkFormat(modelID, key, value, schema); err != nil {
+				return nil, err
+			}
 		}
 		coerced = value
 	}
@@ -140,13 +142,24 @@ func checkEnum(modelID, key string, value any, enum []any) error {
 	if len(enum) == 0 {
 		return nil
 	}
-	for _, allowed := range enum {
-		if reflect.DeepEqual(value, allowed) || fmt.Sprint(value) == fmt.Sprint(allowed) {
-			return nil
-		}
+	if enumContains(value, enum) {
+		return nil
 	}
 	return clierrors.ErrInvalidParam(modelID, key,
 		fmt.Sprintf("%q is not allowed. Allowed values: %s", fmt.Sprint(value), enumValues(enum)))
+}
+
+func enumContains(value any, enum []any) bool {
+	for _, allowed := range enum {
+		if reflect.DeepEqual(value, allowed) || fmt.Sprint(value) == fmt.Sprint(allowed) {
+			return true
+		}
+	}
+	return false
+}
+
+func shouldValidateStringFormat(value string, schema InputSchema) bool {
+	return !enumContains(value, schema.Enum)
 }
 
 func checkNumberBounds(modelID, key string, value float64, schema InputSchema) error {

@@ -317,6 +317,7 @@ seacloud sandbox webhook replay <delivery_id>
 
 seacloud sandbox team list
 seacloud sandbox team metrics <team_id> --start 1710000000 --end 1710003600
+seacloud sandbox team metrics-max <team_id> --metric concurrent_sandboxes
 seacloud sandbox observability
 ```
 
@@ -375,16 +376,9 @@ seacloud version
 - 在任务命令上使用 `--output url` 只打印结果 URL。
 - 当所选模型必须是 LLM 合约模型时，使用 `seacloud llm run <model_id>`。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
-- `seacloud models list` 读取 seacloud-background 的 `/api/v1/skill/models` 模型目录；`seacloud models spec`、`seacloud run` 和 `seacloud llm run` 读取 `/api/v1/skill/model-contracts/{model_id}`。
-- 模型目录和模型合约需要切换到非默认 seacloud-background 根地址时，设置 `SEACLOUD_MODELS_URL`。只有合约根地址需要和目录分开时，才单独设置 `SEACLOUD_MODEL_CONTRACTS_URL`。
-- LLM chat-completions 调用需要切换到非默认 LLM API 根地址时，设置 `SEACLOUD_LLM_URL`。
-- 只有队列模型执行需要切换到非默认生成 API 根地址时，才设置 `SEACLOUD_GENERATION_URL`。
-- 直接在源码目录用 `go run` 做 smoke test 时，需要显式设置 `make build` 平时注入的默认地址，例如 `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`、`SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`、`SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev` 和 `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`。
-- 当前网络需要本地代理时，在 `seacloud auth login` 或真实模型调用前设置标准 `HTTP_PROXY`、`HTTPS_PROXY` 环境变量。
+- 运行模型前，使用 `seacloud models spec <model_id> --output json` 查看参数和示例。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
-- 只切换沙箱 API 根地址时设置 `SEACLOUD_SANDBOX_URL`。需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`；sandbox 命令默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
 - Agent 自动化场景建议使用 `--no-connect --wait --output json` 创建沙箱，保存返回的 sandbox ID，并用 `seacloud sandbox kill <sandbox_id>` 显式清理。
-- 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。
 - 参数错误会包含哪个字段出错、错在哪里，以及建议执行的修复命令或参数。
@@ -392,7 +386,7 @@ seacloud version
 示例：
 
 ```bash
-SEACLOUD_MODELS_URL=http://127.0.0.1:8783 SEACLOUD_MODEL_CONTRACTS_URL=http://127.0.0.1:8783 seacloud models list --page-size 5 --output json
+seacloud models spec gpt_image_2 --output json
 seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```

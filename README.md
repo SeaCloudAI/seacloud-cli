@@ -336,6 +336,7 @@ seacloud sandbox webhook replay <delivery_id>
 
 seacloud sandbox team list
 seacloud sandbox team metrics <team_id> --start 1710000000 --end 1710003600
+seacloud sandbox team metrics-max <team_id> --metric concurrent_sandboxes
 seacloud sandbox observability
 ```
 
@@ -394,16 +395,9 @@ seacloud version
 - Use `--output url` on task commands to print only result URLs.
 - Use `seacloud llm run <model_id>` when the selected model must be an LLM contract.
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
-- `seacloud models list` reads the seacloud-background skill catalog at `/api/v1/skill/models`; `seacloud models spec`, `seacloud run`, and `seacloud llm run` read `/api/v1/skill/model-contracts/{model_id}`.
-- Set `SEACLOUD_MODELS_URL` when the model catalog and model contracts should use a non-default seacloud-background root. Set `SEACLOUD_MODEL_CONTRACTS_URL` only when contracts need a different root from the catalog.
-- Set `SEACLOUD_LLM_URL` when LLM chat-completions calls should use a non-default LLM API root.
-- Set `SEACLOUD_GENERATION_URL` only when queue model execution should use a non-default generation API root.
-- When smoke-testing directly from source with `go run`, set the same endpoint defaults that `make build` injects, such as `SEACLOUD_BASE_URL=https://real-cloud.seaart.dev`, `SEACLOUD_MODELS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, `SEACLOUD_MODEL_CONTRACTS_URL=https://sea-cloud-admin-web.real-cloud.seaart.dev`, and `SEACLOUD_LLM_URL=https://real-cloud.seaart.dev`.
-- If the current network requires a local proxy, set standard `HTTP_PROXY` and `HTTPS_PROXY` variables before `seacloud auth login` or real model calls.
+- Use `seacloud models spec <model_id> --output json` before running a model to inspect parameters and examples.
 - Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
-- For sandbox-only endpoint overrides, set `SEACLOUD_SANDBOX_URL`. Set `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin; sandbox commands normalize it to `https://cloud.seaart.ai/api/sandbox/v1` by default.
 - For agent automation, create sandboxes with `--no-connect --wait --output json`, keep the returned sandbox ID, and clean it up explicitly with `seacloud sandbox kill <sandbox_id>`.
-- Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.
 - Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.
 - Parameter errors include the invalid field, what is wrong, and a suggested command or flag to fix it.
@@ -411,7 +405,7 @@ seacloud version
 Example:
 
 ```bash
-SEACLOUD_MODELS_URL=http://127.0.0.1:8783 SEACLOUD_MODEL_CONTRACTS_URL=http://127.0.0.1:8783 seacloud models list --page-size 5 --output json
+seacloud models spec gpt_image_2 --output json
 seacloud --dry-run run gpt_image_2 --param prompt=test --param n=1 --param size=1024x1024 --param output_format=png
 seacloud --dry-run sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_...
 ```

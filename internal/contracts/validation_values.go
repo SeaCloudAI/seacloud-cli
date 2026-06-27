@@ -108,8 +108,10 @@ func coerceJSONValue(modelID, key string, value any, schema InputSchema) (any, e
 		if err := checkPattern(modelID, key, text, schema); err != nil {
 			return nil, err
 		}
-		if err := checkFormat(modelID, key, text, schema); err != nil {
-			return nil, err
+		if shouldValidateStringFormat(text, schema) {
+			if err := checkFormat(modelID, key, text, schema); err != nil {
+				return nil, err
+			}
 		}
 		coerced = text
 	}

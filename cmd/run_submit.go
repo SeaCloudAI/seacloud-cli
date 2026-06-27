@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/generation"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
@@ -11,15 +13,22 @@ func queueParamsFromContract(modelID string, contract *contracts.ModelContract, 
 	raw = fillRawPrerequisitesFromCache(raw, contract.Prerequisites)
 	params, err := contracts.ValidateAndCoerce(modelID, raw, contract.InputSchema)
 	if err != nil {
-		return nil, err
+		return nil, withContractExamplesHint(modelID, contract, err)
 	}
 	if err := contracts.ValidatePrerequisites(modelID, params, contract.Prerequisites); err != nil {
-		return nil, err
+		return nil, withContractExamplesHint(modelID, contract, err)
 	}
 	if err := contracts.ValidateInputRules(modelID, params, contract.InputRules); err != nil {
-		return nil, err
+		return nil, withContractExamplesHint(modelID, contract, err)
 	}
 	return params, nil
+}
+
+func withContractExamplesHint(modelID string, contract *contracts.ModelContract, err error) error {
+	if err == nil || contract == nil || len(contract.Examples) == 0 {
+		return err
+	}
+	return fmt.Errorf("%w\nHint: Run seacloud models spec %s --output json to view examples.", err, modelID)
 }
 
 func saveQueueSubmission(contract *contracts.ModelContract, requestID string) {

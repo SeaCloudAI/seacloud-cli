@@ -61,8 +61,15 @@ func TestModelsSpecReturnsContractJSON(t *testing.T) {
 					"input_schema":{
 						"type":"object",
 						"required":["prompt"],
-						"properties":{"prompt":{"type":"string"}}
-					}
+						"properties":{
+							"prompt":{
+								"type":"string",
+								"description":"Text prompt used to generate the image",
+								"examples":["A red apple"]
+							}
+						}
+					},
+					"examples":[{"name":"basic","input":{"prompt":"A red apple"}}]
 				}
 			}`))
 		case "/api/v1/skill/models/gpt_image_1/spec":
@@ -84,5 +91,28 @@ func TestModelsSpecReturnsContractJSON(t *testing.T) {
 	}
 	if got["model_id"] != "gpt_image_1" || got["protocol"] != "queue" || got["body_mode"] != "raw_json" {
 		t.Fatalf("unexpected contract: %#v", got)
+	}
+	examples, ok := got["examples"].([]any)
+	if !ok || len(examples) != 1 {
+		t.Fatalf("expected contract examples in JSON output, got %#v", got["examples"])
+	}
+	inputSchema, ok := got["input_schema"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input_schema object, got %#v", got["input_schema"])
+	}
+	properties, ok := inputSchema["properties"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected input_schema.properties object, got %#v", inputSchema["properties"])
+	}
+	prompt, ok := properties["prompt"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected prompt property object, got %#v", properties["prompt"])
+	}
+	if prompt["description"] != "Text prompt used to generate the image" {
+		t.Fatalf("expected prompt description in JSON output, got %#v", prompt["description"])
+	}
+	propertyExamples, ok := prompt["examples"].([]any)
+	if !ok || len(propertyExamples) != 1 || propertyExamples[0] != "A red apple" {
+		t.Fatalf("expected prompt examples in JSON output, got %#v", prompt["examples"])
 	}
 }

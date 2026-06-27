@@ -25,6 +25,7 @@ type ModelContract struct {
 	BodyMode       string            `json:"body_mode"`
 	Endpoints      ContractEndpoints `json:"endpoints"`
 	InputSchema    InputSchema       `json:"input_schema"`
+	Examples       []ContractExample `json:"examples,omitempty"`
 	Prerequisites  []Prerequisite    `json:"prerequisites,omitempty"`
 	ContextInputs  []ContextInput    `json:"context_inputs,omitempty"`
 	FieldAliases   []FieldAlias      `json:"field_aliases,omitempty"`
@@ -43,6 +44,11 @@ type ContractEndpoints struct {
 type Endpoint struct {
 	Method string `json:"method"`
 	Path   string `json:"path"`
+}
+
+type ContractExample struct {
+	Name  string         `json:"name"`
+	Input map[string]any `json:"input"`
 }
 
 type Prerequisite struct {
@@ -78,6 +84,8 @@ type InputRule struct {
 
 type InputSchema struct {
 	Type                 string                 `json:"type"`
+	Description          string                 `json:"description,omitempty"`
+	Examples             []any                  `json:"examples,omitempty"`
 	Required             []string               `json:"required,omitempty"`
 	AdditionalProperties *bool                  `json:"additionalProperties,omitempty"`
 	Properties           map[string]InputSchema `json:"properties,omitempty"`

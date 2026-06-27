@@ -161,15 +161,19 @@ func localPath(value string) (string, bool, bool, error) {
 	if isHTTPURL(value) {
 		return "", false, false, nil
 	}
+	explicit := isExplicitPath(value)
 	path := expandHome(value)
 	info, err := os.Stat(path)
 	if err == nil {
 		return path, !info.IsDir(), true, nil
 	}
 	if os.IsNotExist(err) {
-		return path, false, isExplicitPath(value), nil
+		return path, false, explicit, nil
 	}
-	return path, false, isExplicitPath(value), fileAccessError(path, err)
+	if !explicit {
+		return path, false, false, nil
+	}
+	return path, false, explicit, fileAccessError(path, err)
 }
 
 func isHTTPURL(value string) bool {
@@ -197,5 +201,5 @@ func isExplicitPath(value string) bool {
 	if runtime.GOOS == "windows" && filepath.IsAbs(value) {
 		return true
 	}
-	return strings.Contains(value, "/") || strings.Contains(value, "\\")
+	return false
 }

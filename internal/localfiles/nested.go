@@ -78,14 +78,14 @@ func prepareNestedValue(ctx context.Context, path string, value any, schema cont
 		return arr, modified, nil
 	default:
 		text, ok := value.(string)
-		if !ok || !isURLFormat(schema) || isHTTPURL(text) {
+		if !ok || isHTTPURL(text) {
 			return value, false, nil
 		}
-		return prepareNestedURL(ctx, path, text, upload, count)
+		return prepareNestedString(ctx, path, text, schema, upload, count)
 	}
 }
 
-func prepareNestedURL(ctx context.Context, fieldPath, value string, upload UploadFunc, count *int) (string, bool, error) {
+func prepareNestedString(ctx context.Context, fieldPath, value string, schema contracts.InputSchema, upload UploadFunc, count *int) (string, bool, error) {
 	path, exists, explicit, err := localPath(value)
 	if err != nil {
 		return value, false, nestedFileAccessError(fieldPath, path, err)
@@ -97,10 +97,6 @@ func prepareNestedURL(ctx context.Context, fieldPath, value string, upload Uploa
 		return value, false, nil
 	}
 
-	*count = *count + 1
-	if *count > MaxFileParams {
-		return value, false, &clierrors.CLIError{Message: fmt.Sprintf("too_many_files: at most %d local file parameters are supported", MaxFileParams)}
-	}
 	info, err := os.Stat(path)
 	if err != nil {
 		return value, false, nestedFileAccessError(fieldPath, path, err)
@@ -110,6 +106,13 @@ func prepareNestedURL(ctx context.Context, fieldPath, value string, upload Uploa
 	}
 	if info.Size() > MaxFileBytes {
 		return value, false, &clierrors.CLIError{Message: fmt.Sprintf("file_size_exceeded: %s: %s exceeds 100MB", fieldPath, path)}
+	}
+	if info.Size() <= Base64LimitBytes && !isURLFormat(schema) {
+		return value, false, nil
+	}
+	*count = *count + 1
+	if *count > MaxFileParams {
+		return value, false, &clierrors.CLIError{Message: fmt.Sprintf("too_many_files: at most %d local file parameters are supported", MaxFileParams)}
 	}
 	url, err := uploadFile(ctx, upload, path)
 	if err != nil {

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -184,6 +186,64 @@ func TestRunQueueUploadsNestedMediaURL(t *testing.T) {
 	}
 }
 
+func TestRunQueueUploadsWanImagesArrayLargeLocalFileWithoutFormat(t *testing.T) {
+	filePath := writeLargeRunFile(t, "large.png", 10*1024*1024+1)
+	var uploadCalled bool
+	var submitCalled bool
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/v1/skill/model-contracts/wan25_i2i_preview":
+			writeWanImagesArrayContract(t, w)
+		case "/api/v1/files":
+			uploadCalled = true
+			if _, _, err := r.FormFile("file"); err != nil {
+				t.Fatalf("upload missing file part: %v", err)
+			}
+			_, _ = w.Write([]byte(`{"url":"https://files.example.com/large.png"}`))
+		case "/model/v1/queue/wan25_i2i_preview":
+			submitCalled = true
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode queue body: %v", err)
+			}
+			images := body["images"].([]any)
+			if got := images[0]; got != "https://files.example.com/large.png" {
+				t.Fatalf("images[0] = %#v, want uploaded URL", got)
+			}
+			if images[0] == filePath {
+				t.Fatalf("images[0] still contains local path %q", filePath)
+			}
+			_, _ = w.Write([]byte(`{"request_id":"req-wan","status":"queued"}`))
+		case "/model/v1/queue/wan25_i2i_preview/requests/req-wan/status":
+			_, _ = w.Write([]byte(`{"request_id":"req-wan","status":"completed","progress":1}`))
+		case "/model/v1/queue/wan25_i2i_preview/requests/req-wan/response":
+			_, _ = w.Write([]byte(`{"request_id":"req-wan","status":"completed","outputs":[{"type":"image","url":"https://example.com/out.png"}]}`))
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	setupRunCommandTest(t, server.URL)
+	t.Setenv("SEACLOUD_UPLOAD_URL", server.URL+"/api/v1/files")
+	imagesParam := fmt.Sprintf("[%q]", filePath)
+	stdout, _, err := executeRoot(t, "run", "wan25_i2i_preview",
+		"--param", "prompt=make a clean product photo",
+		"--param", "images="+imagesParam,
+		"--param", "n=1",
+		"--output", "url",
+		"--timeout", "1",
+	)
+	if err != nil {
+		t.Fatalf("run returned error: %v", err)
+	}
+	if !uploadCalled || !submitCalled || !strings.Contains(stdout, "https://example.com/out.png") {
+		t.Fatalf("upload=%v submit=%v stdout=%q", uploadCalled, submitCalled, stdout)
+	}
+}
+
 func TestRunQueueLeavesNestedRemoteMediaURLUnuploaded(t *testing.T) {
 	var uploadCalled bool
 
@@ -267,4 +327,54 @@ func writeNestedMediaContract(t *testing.T, w http.ResponseWriter) {
 			}
 		}
 	}`))
+}
+
+func writeWanImagesArrayContract(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	_, _ = w.Write([]byte(`{
+		"status":{"code":200,"message":"ok"},
+		"data":{
+			"schema_version":"model-contract.v1",
+			"model_id":"wan25_i2i_preview",
+			"protocol":"queue",
+			"body_mode":"raw_json",
+			"endpoints":{
+				"submit":{"method":"POST","path":"/model/v1/queue/wan25_i2i_preview"},
+				"status":{"method":"GET","path":"/model/v1/queue/wan25_i2i_preview/requests/{request_id}/status"},
+				"result":{"method":"GET","path":"/model/v1/queue/wan25_i2i_preview/requests/{request_id}/response"}
+			},
+			"input_schema":{
+				"type":"object",
+				"required":["prompt","images"],
+				"additionalProperties":false,
+				"properties":{
+					"prompt":{"type":"string"},
+					"images":{
+						"type":"array",
+						"items":{"type":"string"},
+						"minItems":1,
+						"maxItems":3
+					},
+					"n":{"type":"integer","default":1}
+				}
+			}
+		}
+	}`))
+}
+
+func writeLargeRunFile(t *testing.T, name string, size int64) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), name)
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	if err := file.Truncate(size); err != nil {
+		_ = file.Close()
+		t.Fatalf("truncate temp file: %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("close temp file: %v", err)
+	}
+	return path
 }

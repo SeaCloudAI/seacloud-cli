@@ -33,6 +33,7 @@
 - **Model discovery**: List available models and inspect full parameter specs in human-readable or JSON form.
 - **Task execution**: Submit multimodal generation tasks from the CLI with parameter validation and structured output options.
 - **Image model execution**: Generate images through `seacloud run` or submit image tasks asynchronously with `seacloud run-async`.
+- **Local file parameters**: Pass local image, video, and audio paths with `--param`; the CLI converts or uploads them before submission.
 - **LLM model execution**: Use `seacloud llm run` when a command must accept only LLM contract models.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
 - **Sandbox workloads**: Create, connect to, execute commands in, observe, and clean up SeaCloud sandboxes with E2B-compatible command shapes.
@@ -147,6 +148,21 @@ seacloud run pixverse_v6_t2v \
 Use model IDs returned by `seacloud models list`, then inspect the exact
 parameter contract with `seacloud models spec <model_id>` before running.
 
+### Use local files
+
+```bash
+seacloud run <model_id> --param image=./input.png --output json
+seacloud run <model_id> --param video=./clip.mp4 --output json
+seacloud run <model_id> --param audio=./sound.mp3 --output json
+```
+
+Local image files `<=10MiB` are encoded as base64 first. If validation or
+submission rejects the base64 value, the CLI uploads the image and retries with
+the returned URL. Local images over `10MiB` and up to `100MB` upload directly.
+Local video files (`.mp4`, `.mov`, `.avi`, `.mkv`) and audio files (`.mp3`,
+`.wav`, `.aac`, `.flac`) upload directly and replace the parameter with the
+returned URL. Remote HTTP(S) URLs stay unchanged.
+
 ### Run an LLM model only
 
 ```bash
@@ -243,6 +259,9 @@ seacloud models spec <model_id> --output json
 seacloud run gpt_image_2 --param prompt="a blue cat" --param n=1 --param size=1024x1024 --param output_format=png --output json
 seacloud run gpt_image_2 --param prompt="a blue cat" --param n=1 --param size=1024x1024 --param output_format=png --output url
 seacloud run pixverse_v6_t2v --param prompt="a puppy running through a sunlit field" --param aspect_ratio=16:9 --param duration=5 --param quality=720p --output json
+seacloud run <model_id> --param image=./input.png --output json
+seacloud run <model_id> --param video=./clip.mp4 --output json
+seacloud run <model_id> --param audio=./sound.mp3 --output json
 ```
 
 Nested fields use dot notation:
@@ -252,6 +271,10 @@ seacloud run some_model \
   --param camera_control.type=simple \
   --param camera_control.speed=2
 ```
+
+Local file parameters follow the same model contract. Images `<=10MiB` use
+base64 first with upload fallback; larger images, videos, and supported audio
+files upload directly to a URL before submission.
 
 ### `seacloud llm run`
 

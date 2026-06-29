@@ -11,7 +11,7 @@ import (
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 )
 
-func prepareNestedJSON(ctx context.Context, key, value string, schema contracts.InputSchema, upload UploadFunc, count *int) (string, bool, error) {
+func prepareNestedJSON(ctx context.Context, key, value string, schema contracts.InputSchema, upload UploadFunc, count *int, prepared *Prepared) (string, bool, error) {
 	fieldSchema, ok := schema.Properties[key]
 	if !ok || !isJSONContainer(fieldSchema) || !looksLikeJSON(value) {
 		return value, false, nil
@@ -22,7 +22,7 @@ func prepareNestedJSON(ctx context.Context, key, value string, schema contracts.
 		return value, true, nil
 	}
 
-	next, modified, err := prepareNestedValue(ctx, key, parsed, fieldSchema, upload, count)
+	next, modified, err := prepareNestedValue(ctx, key, key, parsed, fieldSchema, upload, count, prepared)
 	if err != nil {
 		return value, true, err
 	}
@@ -36,7 +36,7 @@ func prepareNestedJSON(ctx context.Context, key, value string, schema contracts.
 	return string(data), true, nil
 }
 
-func prepareNestedValue(ctx context.Context, path string, value any, schema contracts.InputSchema, upload UploadFunc, count *int) (any, bool, error) {
+func prepareNestedValue(ctx context.Context, rootKey, path string, value any, schema contracts.InputSchema, upload UploadFunc, count *int, prepared *Prepared) (any, bool, error) {
 	switch schema.Type {
 	case "object":
 		obj, ok := value.(map[string]any)
@@ -49,7 +49,7 @@ func prepareNestedValue(ctx context.Context, path string, value any, schema cont
 			if !ok {
 				continue
 			}
-			next, childModified, err := prepareNestedValue(ctx, nestedField(path, name), childValue, childSchema, upload, count)
+			next, childModified, err := prepareNestedValue(ctx, rootKey, nestedField(path, name), childValue, childSchema, upload, count, prepared)
 			if err != nil {
 				return value, false, err
 			}
@@ -66,7 +66,7 @@ func prepareNestedValue(ctx context.Context, path string, value any, schema cont
 		}
 		modified := false
 		for i, item := range arr {
-			next, itemModified, err := prepareNestedValue(ctx, fmt.Sprintf("%s[%d]", path, i), item, *schema.Items, upload, count)
+			next, itemModified, err := prepareNestedValue(ctx, rootKey, fmt.Sprintf("%s[%d]", path, i), item, *schema.Items, upload, count, prepared)
 			if err != nil {
 				return value, false, err
 			}
@@ -81,11 +81,11 @@ func prepareNestedValue(ctx context.Context, path string, value any, schema cont
 		if !ok || isHTTPURL(text) {
 			return value, false, nil
 		}
-		return prepareNestedString(ctx, path, text, schema, upload, count)
+		return prepareNestedString(ctx, rootKey, path, text, schema, upload, count, prepared)
 	}
 }
 
-func prepareNestedString(ctx context.Context, fieldPath, value string, schema contracts.InputSchema, upload UploadFunc, count *int) (string, bool, error) {
+func prepareNestedString(ctx context.Context, rootKey, fieldPath, value string, schema contracts.InputSchema, upload UploadFunc, count *int, prepared *Prepared) (string, bool, error) {
 	path, exists, explicit, err := localPath(value)
 	if err != nil {
 		return value, false, nestedFileAccessError(fieldPath, path, err)
@@ -107,18 +107,23 @@ func prepareNestedString(ctx context.Context, fieldPath, value string, schema co
 	if info.Size() > MaxFileBytes {
 		return value, false, &clierrors.CLIError{Message: fmt.Sprintf("file_size_exceeded: %s: %s exceeds 100MB", fieldPath, path)}
 	}
-	if info.Size() <= Base64LimitBytes && !isURLFormat(schema) {
-		return value, false, nil
-	}
 	*count = *count + 1
 	if *count > MaxFileParams {
 		return value, false, &clierrors.CLIError{Message: fmt.Sprintf("too_many_files: at most %d local file parameters are supported", MaxFileParams)}
 	}
-	url, err := uploadFile(ctx, upload, path)
-	if err != nil {
-		return value, false, err
+	if shouldUploadDirect(path, schema.Format, info.Size(), true) {
+		url, err := uploadFile(ctx, upload, path)
+		if err != nil {
+			return value, false, err
+		}
+		return url, true, nil
 	}
-	return url, true, nil
+	encoded, err := encodeFileBase64(path)
+	if err != nil {
+		return value, false, nestedFileAccessError(fieldPath, path, err)
+	}
+	prepared.fallback = append(prepared.fallback, fileParam{key: rootKey, path: path, encoded: encoded, nested: true})
+	return encoded, true, nil
 }
 
 func isJSONContainer(schema contracts.InputSchema) bool {
@@ -128,11 +133,6 @@ func isJSONContainer(schema contracts.InputSchema) bool {
 func looksLikeJSON(value string) bool {
 	trimmed := strings.TrimSpace(value)
 	return strings.HasPrefix(trimmed, "{") || strings.HasPrefix(trimmed, "[")
-}
-
-func isURLFormat(schema contracts.InputSchema) bool {
-	format := strings.ToLower(strings.TrimSpace(schema.Format))
-	return format == "uri" || format == "url"
 }
 
 func nestedField(parent, child string) string {

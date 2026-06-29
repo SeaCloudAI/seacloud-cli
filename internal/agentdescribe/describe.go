@@ -90,6 +90,7 @@ func Build(cliVersion string) Description {
 				Commands: []CommandExample{
 					{Command: "seacloud --dry-run run <model_id> --param key=value", Purpose: "Preview request shape without submitting."},
 					{Command: "seacloud run <model_id> --param key=value --output json", Purpose: "Submit and print the full task response."},
+					{Command: "seacloud run <model_id> --param image=./input.png --output json", Purpose: "Pass a local file path for model fields that accept image, video, or audio files."},
 					{Command: "seacloud run <model_id> --param key=value --output url", Purpose: "Submit and print result URLs."},
 				},
 			},
@@ -159,6 +160,15 @@ func Build(cliVersion string) Description {
 					"Use dot notation for nested objects, such as --param camera_control.type=simple.",
 					"Pass arrays as JSON strings, such as --param content='[{\"type\":\"text\",\"text\":\"hello\"}]'.",
 					"Repeat --param for multiple fields.",
+				},
+			},
+			{
+				Title: "Local file parameters",
+				Details: []string{
+					"Local image files under or equal to 10MiB are encoded as base64 first, then uploaded as a URL only if validation or submission rejects the base64 value.",
+					"Local image files over 10MiB and up to 100MB are uploaded directly and the parameter is replaced with the returned URL.",
+					"Local video files (.mp4, .mov, .avi, .mkv) and audio files (.mp3, .wav, .aac, .flac) are uploaded directly and the parameter is replaced with the returned URL.",
+					"Remote HTTP(S) URLs stay unchanged; explicit local paths that do not exist fail before submission.",
 				},
 			},
 		},

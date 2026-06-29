@@ -40,6 +40,31 @@ func validateFormat(key, path string, schema contracts.InputSchema) error {
 	}
 }
 
+func shouldUploadDirect(path, format string, size int64, nested bool) bool {
+	if size > Base64LimitBytes {
+		return true
+	}
+	kind := localFileKind(path, format)
+	if kind == "video" || kind == "audio" {
+		return true
+	}
+	return nested && kind != "image"
+}
+
+func localFileKind(path, format string) string {
+	format = strings.ToLower(strings.TrimSpace(format))
+	if _, ok := mediaExtensions[format]; ok {
+		return format
+	}
+	ext := strings.ToLower(filepath.Ext(path))
+	for kind, allowed := range mediaExtensions {
+		if allowed[ext] {
+			return kind
+		}
+	}
+	return ""
+}
+
 func formatForKey(key string, schema contracts.InputSchema) string {
 	parts := strings.Split(key, ".")
 	if len(parts) == 0 {

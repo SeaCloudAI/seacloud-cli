@@ -3,6 +3,7 @@ package localfiles
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -31,8 +32,10 @@ type Prepared struct {
 }
 
 type fileParam struct {
-	key  string
-	path string
+	key     string
+	path    string
+	encoded string
+	nested  bool
 }
 
 func Prepare(ctx context.Context, raw map[string]string, schema contracts.InputSchema, upload UploadFunc) (*Prepared, error) {
@@ -40,7 +43,7 @@ func Prepare(ctx context.Context, raw map[string]string, schema contracts.InputS
 	prepared := &Prepared{Raw: out, upload: upload}
 	count := 0
 	for key, value := range raw {
-		nestedValue, handled, err := prepareNestedJSON(ctx, key, value, schema, upload, &count)
+		nestedValue, handled, err := prepareNestedJSON(ctx, key, value, schema, upload, &count, prepared)
 		if err != nil {
 			return nil, err
 		}
@@ -75,7 +78,7 @@ func Prepare(ctx context.Context, raw map[string]string, schema contracts.InputS
 		if info.Size() > MaxFileBytes {
 			return nil, &clierrors.CLIError{Message: fmt.Sprintf("file_size_exceeded: %s exceeds 100MB", path)}
 		}
-		if info.Size() > Base64LimitBytes {
+		if shouldUploadDirect(path, formatForKey(key, schema), info.Size(), false) {
 			url, err := uploadFile(ctx, upload, path)
 			if err != nil {
 				return nil, err
@@ -83,11 +86,11 @@ func Prepare(ctx context.Context, raw map[string]string, schema contracts.InputS
 			out[key] = url
 			continue
 		}
-		content, err := os.ReadFile(path)
+		encoded, err := encodeFileBase64(path)
 		if err != nil {
 			return nil, fileAccessError(path, err)
 		}
-		out[key] = base64.StdEncoding.EncodeToString(content)
+		out[key] = encoded
 		prepared.fallback = append(prepared.fallback, fileParam{key: key, path: path})
 	}
 	return prepared, nil
@@ -125,11 +128,67 @@ func (p *Prepared) FallbackRaw(ctx context.Context) (map[string]string, error) {
 		if err != nil {
 			return nil, err
 		}
+		if item.nested {
+			next, err := replaceNestedFallbackValue(out[item.key], item.encoded, url)
+			if err != nil {
+				return nil, err
+			}
+			out[item.key] = next
+			continue
+		}
 		out[item.key] = url
 	}
 	p.fallbackUsed = true
 	p.fallbackRaw = copyRaw(out)
 	return out, nil
+}
+
+func encodeFileBase64(path string) (string, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	return base64.StdEncoding.EncodeToString(content), nil
+}
+
+func replaceNestedFallbackValue(raw, encoded, url string) (string, error) {
+	var parsed any
+	if err := json.Unmarshal([]byte(raw), &parsed); err != nil {
+		return "", &clierrors.CLIError{Message: fmt.Sprintf("upload_failed: invalid nested fallback JSON: %v", err)}
+	}
+	if !replaceFirstStringValue(&parsed, encoded, url) {
+		return "", &clierrors.CLIError{Message: "upload_failed: nested fallback value was not found"}
+	}
+	data, err := json.Marshal(parsed)
+	if err != nil {
+		return "", &clierrors.CLIError{Message: fmt.Sprintf("upload_failed: invalid nested fallback JSON: %v", err)}
+	}
+	return string(data), nil
+}
+
+func replaceFirstStringValue(value *any, oldValue, newValue string) bool {
+	switch typed := (*value).(type) {
+	case string:
+		if typed != oldValue {
+			return false
+		}
+		*value = newValue
+		return true
+	case []any:
+		for i := range typed {
+			if replaceFirstStringValue(&typed[i], oldValue, newValue) {
+				return true
+			}
+		}
+	case map[string]any:
+		for key, child := range typed {
+			if replaceFirstStringValue(&child, oldValue, newValue) {
+				typed[key] = child
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func copyRaw(raw map[string]string) map[string]string {

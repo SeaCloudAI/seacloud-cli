@@ -117,6 +117,37 @@ func TestBuildIncludesProxyEndpointRules(t *testing.T) {
 	}
 }
 
+func TestBuildIncludesLocalFileParameterRules(t *testing.T) {
+	desc := Build("test-version")
+
+	run := findCapability(desc, "run")
+	if run == nil {
+		t.Fatalf("expected run capability in %#v", desc.Capabilities)
+	}
+	if !capabilityHasCommand(*run, "seacloud run <model_id> --param image=./input.png --output json") {
+		t.Fatalf("expected local file run example in %#v", run.Commands)
+	}
+
+	var found bool
+	for _, rule := range desc.ParameterRules {
+		if rule.Title != "Local file parameters" {
+			continue
+		}
+		found = true
+		for _, detail := range []string{
+			"Local image files under or equal to 10MiB are encoded as base64 first, then uploaded as a URL only if validation or submission rejects the base64 value.",
+			"Local video files (.mp4, .mov, .avi, .mkv) and audio files (.mp3, .wav, .aac, .flac) are uploaded directly and the parameter is replaced with the returned URL.",
+		} {
+			if !ruleHasDetail(rule, detail) {
+				t.Fatalf("expected local file rule detail %q in %#v", detail, rule.Details)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected local file parameter rules in %#v", desc.ParameterRules)
+	}
+}
+
 func TestBuildDoesNotAdvertiseRemovedImageCommands(t *testing.T) {
 	desc := Build("test-version")
 	markdown := RenderMarkdown(desc)

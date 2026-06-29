@@ -35,6 +35,7 @@ func TestRenderMarkdownIncludesStableSectionsAndCommands(t *testing.T) {
 		"seacloud --version",
 		"seacloud models list",
 		"seacloud --dry-run run <model_id> --param key=value",
+		"seacloud run <model_id> --param image=./input.png --output json",
 		"seacloud run-async <model_id> --param key=value",
 		"seacloud task status <task_id> --output json",
 	} {
@@ -53,6 +54,20 @@ func TestRenderMarkdownIncludesProxyEndpointRules(t *testing.T) {
 		"Use `seacloud run-async <model_id>` to submit only and return a task ID.",
 		"Model IDs with underscores such as `gpt_image_2` use queue contracts unless explicitly aliased.",
 		"Queue models use `SEACLOUD_GENERATION_URL` and task polling.",
+	} {
+		if !strings.Contains(output, text) {
+			t.Fatalf("expected markdown to contain %q\n%s", text, output)
+		}
+	}
+}
+
+func TestRenderMarkdownIncludesLocalFileRules(t *testing.T) {
+	output := RenderMarkdown(Build("test-version"))
+
+	for _, text := range []string{
+		"### Local file parameters",
+		"Local image files under or equal to 10MiB are encoded as base64 first",
+		"Local video files (.mp4, .mov, .avi, .mkv) and audio files (.mp3, .wav, .aac, .flac) are uploaded directly",
 	} {
 		if !strings.Contains(output, text) {
 			t.Fatalf("expected markdown to contain %q\n%s", text, output)

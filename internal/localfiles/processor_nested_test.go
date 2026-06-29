@@ -2,6 +2,7 @@ package localfiles
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -147,26 +148,30 @@ func TestPrepareRejectsNestedLargeFileOverMaxWithoutFormat(t *testing.T) {
 	}
 }
 
-func TestPrepareUploadsNestedMultiViewImageURL(t *testing.T) {
+func TestPrepareEncodesNestedMultiViewImageURLAsBase64(t *testing.T) {
 	filePath := writeNestedFile(t, "front.png", []byte("png"))
+	wantBase64 := base64.StdEncoding.EncodeToString([]byte("png"))
 	raw := map[string]string{
 		"multi_view_images": `[{"View":"front","ImageUrl":"` + filePath + `"}]`,
 	}
+	uploadCalled := false
 
 	prepared, err := Prepare(t.Context(), raw, multiViewSchema(), func(_ context.Context, path string) (string, error) {
-		if path != filePath {
-			t.Fatalf("uploaded path = %q, want %q", path, filePath)
-		}
-		return "https://files.example.com/front.png", nil
+		uploadCalled = true
+		t.Fatal("small nested image must not upload before fallback")
+		return "", nil
 	})
 	if err != nil {
 		t.Fatalf("Prepare returned error: %v", err)
+	}
+	if uploadCalled {
+		t.Fatal("small nested image uploaded before fallback")
 	}
 	var media []map[string]any
 	if err := json.Unmarshal([]byte(prepared.Raw["multi_view_images"]), &media); err != nil {
 		t.Fatalf("unmarshal multi_view_images: %v", err)
 	}
-	if got := media[0]["ImageUrl"]; got != "https://files.example.com/front.png" {
+	if got := media[0]["ImageUrl"]; got != wantBase64 {
 		t.Fatalf("multi_view_images[0].ImageUrl = %#v", got)
 	}
 }

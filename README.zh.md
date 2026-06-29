@@ -30,6 +30,7 @@
 - **模型发现**：列出可用模型，并以可读文本或 JSON 查看完整参数规格。
 - **任务执行**：通过 CLI 提交多模态生成任务，支持参数校验和结构化输出。
 - **图片模型执行**：通过 `seacloud run` 生成图片，或使用 `seacloud run-async` 异步提交图片任务。
+- **本地文件参数**：通过 `--param` 传入本地图片、视频、音频路径，CLI 会在提交前转换或上传。
 - **LLM 模型执行**：当命令必须只接受 LLM 模型时，使用 `seacloud llm run`。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
 - **沙箱工作负载**：用 E2B 兼容的命令形态创建、连接、执行、观测和清理 SeaCloud 沙箱。
@@ -131,6 +132,20 @@ seacloud run gpt_image_2 \
 请使用 `seacloud models list` 返回的模型 ID，并在执行前通过
 `seacloud models spec <model_id>` 查看该模型的准确参数合约。
 
+### 使用本地文件
+
+```bash
+seacloud run <model_id> --param image=./input.png --output json
+seacloud run <model_id> --param video=./clip.mp4 --output json
+seacloud run <model_id> --param audio=./sound.mp3 --output json
+```
+
+本地图片文件 `<=10MiB` 会先转成 base64；如果校验或提交阶段拒绝 base64，
+CLI 会上传图片并用返回的 URL 重试。超过 `10MiB` 且不超过 `100MB` 的本地图片
+会直接上传。本地视频文件（`.mp4`、`.mov`、`.avi`、`.mkv`）和音频文件
+（`.mp3`、`.wav`、`.aac`、`.flac`）会直接上传，并将参数替换成返回的 URL。
+远程 HTTP(S) URL 会保持原值。
+
 ### 只执行 LLM 模型
 
 ```bash
@@ -226,6 +241,9 @@ seacloud models spec <model_id> --output json
 ```bash
 seacloud run gpt_image_2 --param prompt="一只蓝色猫" --param n=1 --param size=1024x1024 --param output_format=png --output json
 seacloud run gpt_image_2 --param prompt="一只蓝色猫" --param n=1 --param size=1024x1024 --param output_format=png --output url
+seacloud run <model_id> --param image=./input.png --output json
+seacloud run <model_id> --param video=./clip.mp4 --output json
+seacloud run <model_id> --param audio=./sound.mp3 --output json
 ```
 
 嵌套字段支持 dot notation：
@@ -235,6 +253,9 @@ seacloud run some_model \
   --param camera_control.type=simple \
   --param camera_control.speed=2
 ```
+
+本地文件参数仍以模型合约为准。图片 `<=10MiB` 先走 base64，失败后上传并替换为
+URL；更大的图片、视频和支持的音频文件会在提交前直接上传为 URL。
 
 ### `seacloud llm run`
 

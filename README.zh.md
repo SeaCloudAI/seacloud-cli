@@ -400,6 +400,8 @@ seacloud version
 - 运行模型前，使用 `seacloud models spec <model_id> --output json` 查看参数和示例。
 - sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
 - Agent 自动化场景建议使用 `--no-connect --wait --output json` 创建沙箱，保存返回的 sandbox ID，并用 `seacloud sandbox kill <sandbox_id>` 显式清理。
+- 需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`。sandbox 命令使用同一个主地址，并默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
+- 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。
 - 参数错误会包含哪个字段出错、错在哪里，以及建议执行的修复命令或参数。

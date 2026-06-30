@@ -2,11 +2,15 @@ package cmd
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
+	runtimecmd "github.com/SeaCloudAI/sandbox-go/cmd"
 	"github.com/SeaCloudAI/sandbox-go/control"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/spf13/cobra"
@@ -164,6 +168,113 @@ func TestShouldConnectAfterCreateSkipsAutomationModes(t *testing.T) {
 	if shouldConnectAfterCreate(nil) {
 		t.Fatal("expected json output to skip create connection")
 	}
+}
+
+func TestSandboxCreateConnectFailureStillDeletesByDefault(t *testing.T) {
+	originalCreate := sandboxCreateOpts
+	originalOpts := sandboxOpts
+	originalDryRun := dryRun
+	t.Cleanup(func() {
+		sandboxCreateOpts = originalCreate
+		sandboxOpts = originalOpts
+		dryRun = originalDryRun
+	})
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "")
+
+	var sawCreate bool
+	var sawConnect bool
+	var sawDelete bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes":
+			sawCreate = true
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"sandboxID":"sb-cleanup","templateID":"base","status":"running"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes/sb-cleanup/connect":
+			sawConnect = true
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"message":"conflict"}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/sandbox/v1/sandboxes/sb-cleanup":
+			sawDelete = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	dryRun = false
+	sandboxOpts.baseURL = server.URL
+	sandboxOpts.output = "table"
+	sandboxCreateOpts.connect = true
+	sandboxCreateOpts.noConnect = false
+	sandboxCreateOpts.killOnExit = false
+
+	cmd := &cobra.Command{Use: "create"}
+	cmd.Flags().Bool("kill-on-exit", false, "")
+	cmd.SetContext(context.Background())
+	err := sandboxCreateCmd.RunE(cmd, []string{"base"})
+	if err == nil {
+		t.Fatal("expected connect conflict error")
+	}
+	if !sawCreate || !sawConnect || !sawDelete {
+		t.Fatalf("expected create, connect, and cleanup delete; saw create=%t connect=%t delete=%t", sawCreate, sawConnect, sawDelete)
+	}
+}
+
+func TestRunSandboxCommandHonorsTimeoutMS(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/process.Process/Start" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/connect+json")
+		w.WriteHeader(http.StatusOK)
+		if _, err := w.Write(connectJSONFrame(t, map[string]any{
+			"event": map[string]any{
+				"start": map[string]any{
+					"pid":   123,
+					"cmdId": "cmd-timeout",
+				},
+			},
+		})); err != nil {
+			t.Fatalf("write start frame: %v", err)
+		}
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	service, err := runtimecmd.NewService(server.URL, "runtime-token")
+	if err != nil {
+		t.Fatalf("runtime service: %v", err)
+	}
+	err = runSandboxCommand(context.Background(), service, "sleep 2", struct {
+		background bool
+		cwd        string
+		user       string
+		env        []string
+		timeoutMS  int64
+	}{timeoutMS: 50})
+	if err == nil {
+		t.Fatal("expected timeout error")
+	}
+	if !strings.Contains(err.Error(), "command timed out after 50ms") {
+		t.Fatalf("unexpected timeout error: %v", err)
+	}
+}
+
+func connectJSONFrame(t *testing.T, payload any) []byte {
+	t.Helper()
+	data, err := json.Marshal(payload)
+	if err != nil {
+		t.Fatalf("marshal connect payload: %v", err)
+	}
+	frame := make([]byte, 5+len(data))
+	binary.BigEndian.PutUint32(frame[1:5], uint32(len(data)))
+	copy(frame[5:], data)
+	return frame
 }
 
 func TestBuildNetworkUpdateBody(t *testing.T) {

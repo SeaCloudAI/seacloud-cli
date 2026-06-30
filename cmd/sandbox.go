@@ -109,15 +109,19 @@ including metadata, env vars, network policy, and volume mounts.`,
 			return err
 		}
 		if shouldConnectAfterCreate(cmd) {
-			if err := connectSandboxShell(ctx, client, created.SandboxID, sandboxCreateOpts.shell, sandboxCreateOpts.connectTimeout); err != nil {
-				return err
-			}
 			killOnExit := sandboxCreateOpts.killOnExit
 			if !cmd.Flags().Changed("kill-on-exit") {
 				killOnExit = true
 			}
 			if killOnExit {
-				return client.Control.DeleteSandbox(ctx, created.SandboxID)
+				defer func() {
+					cleanupCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+					defer cancel()
+					_ = client.Control.DeleteSandbox(cleanupCtx, created.SandboxID)
+				}()
+			}
+			if err := connectSandboxShell(ctx, client, created.SandboxID, sandboxCreateOpts.shell, sandboxCreateOpts.connectTimeout); err != nil {
+				return err
 			}
 			return nil
 		}
@@ -1150,6 +1154,11 @@ func runSandboxCommand(ctx context.Context, runtime *runtimecmd.Service, command
 	env        []string
 	timeoutMS  int64
 }) error {
+	if opts.timeoutMS > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, time.Duration(opts.timeoutMS)*time.Millisecond)
+		defer cancel()
+	}
 	stdinOpen := true
 	timeout := opts.timeoutMS
 	process := &runtimecmd.ProcessStartRequest{
@@ -1170,6 +1179,9 @@ func runSandboxCommand(ctx context.Context, runtime *runtimecmd.Service, command
 	}
 	stream, err := runtime.Start(ctx, process, requestOpts)
 	if err != nil {
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			return fmt.Errorf("command timed out after %dms: %w", opts.timeoutMS, ctx.Err())
+		}
 		return err
 	}
 	defer stream.Close()
@@ -1197,6 +1209,9 @@ func runSandboxCommand(ctx context.Context, runtime *runtimecmd.Service, command
 	for {
 		frame, err := stream.Next()
 		if err != nil {
+			if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+				return fmt.Errorf("command timed out after %dms: %w", opts.timeoutMS, ctx.Err())
+			}
 			if errors.Is(err, io.EOF) {
 				break
 			}

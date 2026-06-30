@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/binary"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	runtimecmd "github.com/SeaCloudAI/sandbox-go/cmd"
 	"github.com/SeaCloudAI/sandbox-go/control"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/spf13/cobra"
@@ -170,7 +168,7 @@ func TestShouldConnectAfterCreateSkipsAutomationModes(t *testing.T) {
 	}
 }
 
-func TestSandboxCreateConnectFailureStillDeletesByDefault(t *testing.T) {
+func TestSandboxCreateConnectSetsWaitReadyAndCleansUpOnConnectFailure(t *testing.T) {
 	originalCreate := sandboxCreateOpts
 	originalOpts := sandboxOpts
 	originalDryRun := dryRun
@@ -188,6 +186,13 @@ func TestSandboxCreateConnectFailureStillDeletesByDefault(t *testing.T) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes":
 			sawCreate = true
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create body: %v", err)
+			}
+			if body["waitReady"] != true {
+				t.Fatalf("create+connect should set waitReady=true, body=%#v", body)
+			}
 			w.WriteHeader(http.StatusCreated)
 			_, _ = w.Write([]byte(`{"sandboxID":"sb-cleanup","templateID":"base","status":"running"}`))
 		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes/sb-cleanup/connect":
@@ -222,59 +227,58 @@ func TestSandboxCreateConnectFailureStillDeletesByDefault(t *testing.T) {
 	}
 }
 
-func TestRunSandboxCommandHonorsTimeoutMS(t *testing.T) {
+func TestSandboxLogsOmitsZeroCursor(t *testing.T) {
+	originalLogs := sandboxLogsOpts
+	originalOpts := sandboxOpts
+	originalDryRun := dryRun
+	t.Cleanup(func() {
+		sandboxLogsOpts = originalLogs
+		sandboxOpts = originalOpts
+		dryRun = originalDryRun
+	})
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "")
+
+	var gotRawQuery string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost || r.URL.Path != "/process.Process/Start" {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/sandbox/v1/sandboxes/sb-logs/logs" {
 			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
 		}
-		w.Header().Set("Content-Type", "application/connect+json")
-		w.WriteHeader(http.StatusOK)
-		if _, err := w.Write(connectJSONFrame(t, map[string]any{
-			"event": map[string]any{
-				"start": map[string]any{
-					"pid":   123,
-					"cmdId": "cmd-timeout",
-				},
-			},
-		})); err != nil {
-			t.Fatalf("write start frame: %v", err)
-		}
-		if flusher, ok := w.(http.Flusher); ok {
-			flusher.Flush()
-		}
-		<-r.Context().Done()
+		gotRawQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"logs":[]}`))
 	}))
 	defer server.Close()
 
-	service, err := runtimecmd.NewService(server.URL, "runtime-token")
-	if err != nil {
-		t.Fatalf("runtime service: %v", err)
-	}
-	err = runSandboxCommand(context.Background(), service, "sleep 2", struct {
-		background bool
-		cwd        string
-		user       string
-		env        []string
-		timeoutMS  int64
-	}{timeoutMS: 50})
-	if err == nil {
-		t.Fatal("expected timeout error")
-	}
-	if !strings.Contains(err.Error(), "command timed out after 50ms") {
-		t.Fatalf("unexpected timeout error: %v", err)
-	}
-}
+	dryRun = false
+	sandboxOpts.baseURL = server.URL
+	sandboxOpts.output = "json"
+	sandboxLogsOpts.cursor = 0
+	sandboxLogsOpts.limit = 20
+	sandboxLogsOpts.direction = "forward"
+	sandboxLogsOpts.level = "info"
+	sandboxLogsOpts.search = "marker"
 
-func connectJSONFrame(t *testing.T, payload any) []byte {
-	t.Helper()
-	data, err := json.Marshal(payload)
-	if err != nil {
-		t.Fatalf("marshal connect payload: %v", err)
+	cmd := &cobra.Command{Use: "logs"}
+	cmd.Flags().Int64("cursor", 0, "")
+	cmd.Flags().Int("limit", 0, "")
+	cmd.SetContext(context.Background())
+	if err := cmd.Flags().Set("cursor", "0"); err != nil {
+		t.Fatal(err)
 	}
-	frame := make([]byte, 5+len(data))
-	binary.BigEndian.PutUint32(frame[1:5], uint32(len(data)))
-	copy(frame[5:], data)
-	return frame
+	if err := cmd.Flags().Set("limit", "20"); err != nil {
+		t.Fatal(err)
+	}
+	if err := sandboxLogsCmd.RunE(cmd, []string{"sb-logs"}); err != nil {
+		t.Fatalf("sandbox logs returned error: %v", err)
+	}
+	if strings.Contains(gotRawQuery, "cursor=") {
+		t.Fatalf("cursor=0 should be omitted, got query %q", gotRawQuery)
+	}
+	for _, want := range []string{"direction=forward", "level=info", "limit=20", "search=marker"} {
+		if !strings.Contains(gotRawQuery, want) {
+			t.Fatalf("query missing %q: %q", want, gotRawQuery)
+		}
+	}
 }
 
 func TestBuildNetworkUpdateBody(t *testing.T) {

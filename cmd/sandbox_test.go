@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/SeaCloudAI/sandbox-go/control"
@@ -163,6 +165,119 @@ func TestShouldConnectAfterCreateSkipsAutomationModes(t *testing.T) {
 	sandboxOpts.output = "json"
 	if shouldConnectAfterCreate(nil) {
 		t.Fatal("expected json output to skip create connection")
+	}
+}
+
+func TestSandboxCreateConnectSetsWaitReadyAndCleansUpOnConnectFailure(t *testing.T) {
+	originalCreate := sandboxCreateOpts
+	originalOpts := sandboxOpts
+	originalDryRun := dryRun
+	t.Cleanup(func() {
+		sandboxCreateOpts = originalCreate
+		sandboxOpts = originalOpts
+		dryRun = originalDryRun
+	})
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "")
+
+	var sawCreate bool
+	var sawConnect bool
+	var sawDelete bool
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes":
+			sawCreate = true
+			var body map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Fatalf("decode create body: %v", err)
+			}
+			if body["waitReady"] != true {
+				t.Fatalf("create+connect should set waitReady=true, body=%#v", body)
+			}
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte(`{"sandboxID":"sb-cleanup","templateID":"base","status":"running"}`))
+		case r.Method == http.MethodPost && r.URL.Path == "/api/sandbox/v1/sandboxes/sb-cleanup/connect":
+			sawConnect = true
+			w.WriteHeader(http.StatusConflict)
+			_, _ = w.Write([]byte(`{"message":"conflict"}`))
+		case r.Method == http.MethodDelete && r.URL.Path == "/api/sandbox/v1/sandboxes/sb-cleanup":
+			sawDelete = true
+			w.WriteHeader(http.StatusNoContent)
+		default:
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	dryRun = false
+	sandboxOpts.baseURL = server.URL
+	sandboxOpts.output = "table"
+	sandboxCreateOpts.connect = true
+	sandboxCreateOpts.noConnect = false
+	sandboxCreateOpts.killOnExit = false
+
+	cmd := &cobra.Command{Use: "create"}
+	cmd.Flags().Bool("kill-on-exit", false, "")
+	cmd.SetContext(context.Background())
+	err := sandboxCreateCmd.RunE(cmd, []string{"base"})
+	if err == nil {
+		t.Fatal("expected connect conflict error")
+	}
+	if !sawCreate || !sawConnect || !sawDelete {
+		t.Fatalf("expected create, connect, and cleanup delete; saw create=%t connect=%t delete=%t", sawCreate, sawConnect, sawDelete)
+	}
+}
+
+func TestSandboxLogsOmitsZeroCursor(t *testing.T) {
+	originalLogs := sandboxLogsOpts
+	originalOpts := sandboxOpts
+	originalDryRun := dryRun
+	t.Cleanup(func() {
+		sandboxLogsOpts = originalLogs
+		sandboxOpts = originalOpts
+		dryRun = originalDryRun
+	})
+	saveLoginConfigForSandboxTest(t, "login-auth-token", "refresh-token", "")
+
+	var gotRawQuery string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/api/sandbox/v1/sandboxes/sb-logs/logs" {
+			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
+		}
+		gotRawQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"logs":[]}`))
+	}))
+	defer server.Close()
+
+	dryRun = false
+	sandboxOpts.baseURL = server.URL
+	sandboxOpts.output = "json"
+	sandboxLogsOpts.cursor = 0
+	sandboxLogsOpts.limit = 20
+	sandboxLogsOpts.direction = "forward"
+	sandboxLogsOpts.level = "info"
+	sandboxLogsOpts.search = "marker"
+
+	cmd := &cobra.Command{Use: "logs"}
+	cmd.Flags().Int64("cursor", 0, "")
+	cmd.Flags().Int("limit", 0, "")
+	cmd.SetContext(context.Background())
+	if err := cmd.Flags().Set("cursor", "0"); err != nil {
+		t.Fatal(err)
+	}
+	if err := cmd.Flags().Set("limit", "20"); err != nil {
+		t.Fatal(err)
+	}
+	if err := sandboxLogsCmd.RunE(cmd, []string{"sb-logs"}); err != nil {
+		t.Fatalf("sandbox logs returned error: %v", err)
+	}
+	if strings.Contains(gotRawQuery, "cursor=") {
+		t.Fatalf("cursor=0 should be omitted, got query %q", gotRawQuery)
+	}
+	for _, want := range []string{"direction=forward", "level=info", "limit=20", "search=marker"} {
+		if !strings.Contains(gotRawQuery, want) {
+			t.Fatalf("query missing %q: %q", want, gotRawQuery)
+		}
 	}
 }
 

@@ -87,6 +87,10 @@ including metadata, env vars, network policy, and volume mounts.`,
 		if err != nil {
 			return err
 		}
+		connectAfterCreate := shouldConnectAfterCreate(cmd)
+		if connectAfterCreate {
+			req.WaitReady = boolPtr(true)
+		}
 		if IsDryRun() {
 			return printDryRunPlan(dryRunPlan{
 				Action: "create sandbox",
@@ -108,7 +112,7 @@ including metadata, env vars, network policy, and volume mounts.`,
 		if err != nil {
 			return err
 		}
-		if shouldConnectAfterCreate(cmd) {
+		if connectAfterCreate {
 			killOnExit := sandboxCreateOpts.killOnExit
 			if !cmd.Flags().Changed("kill-on-exit") {
 				killOnExit = true
@@ -429,7 +433,7 @@ log entries.`,
 		if cmd.Flags().Changed("limit") {
 			params.Limit = &sandboxLogsOpts.limit
 		}
-		if cmd.Flags().Changed("cursor") {
+		if cmd.Flags().Changed("cursor") && sandboxLogsOpts.cursor > 0 {
 			params.Cursor = &sandboxLogsOpts.cursor
 		}
 		if IsDryRun() {

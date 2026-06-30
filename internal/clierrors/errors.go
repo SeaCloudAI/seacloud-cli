@@ -164,7 +164,7 @@ func ErrFetchModelSpec(id string, err error) error {
 func ErrNoAPIKey() error {
 	return &CLIError{
 		Message: "API key not set",
-		Hint:    "Run: seacloud auth login to obtain an API key, or inject FOLKOS_EXEC_TOKEN in managed runtimes",
+		Hint:    "Run: seacloud auth login to obtain an API key, run seacloud auth set-key <api-key>, or inject FOLKOS_EXEC_TOKEN in managed runtimes",
 	}
 }
 

@@ -34,16 +34,23 @@ type Client struct {
 }
 
 type Task struct {
-	ID        string                   `json:"id"`
-	RequestID string                   `json:"request_id"`
-	Status    string                   `json:"status"`
-	Model     string                   `json:"model,omitempty"`
-	Metadata  map[string]any           `json:"metadata,omitempty"`
-	Output    []generation.OutputGroup `json:"output,omitempty"`
-	Outputs   []Output                 `json:"outputs,omitempty"`
-	Error     *generation.TaskError    `json:"error,omitempty"`
-	ErrorType string                   `json:"error_type,omitempty"`
-	Progress  float64                  `json:"progress,omitempty"`
+	ID            string                   `json:"id"`
+	RequestID     string                   `json:"request_id"`
+	Status        string                   `json:"status"`
+	Model         string                   `json:"model,omitempty"`
+	Metadata      map[string]any           `json:"metadata,omitempty"`
+	Output        []generation.OutputGroup `json:"output,omitempty"`
+	Outputs       []Output                 `json:"outputs,omitempty"`
+	Error         *generation.TaskError    `json:"error,omitempty"`
+	ErrorType     string                   `json:"error_type,omitempty"`
+	ProviderError map[string]any           `json:"provider_error,omitempty"`
+	Logs          []LogEntry               `json:"logs,omitempty"`
+	Progress      float64                  `json:"progress,omitempty"`
+}
+
+type LogEntry struct {
+	Message   string `json:"message,omitempty"`
+	Timestamp string `json:"timestamp,omitempty"`
 }
 
 type Output struct {
@@ -219,6 +226,44 @@ func (t *Task) normalizeID() {
 	if t.Status == "completed" && t.Error != nil && t.Error.Message != "" {
 		t.Status = "failed"
 	}
+}
+
+func (t *Task) ProviderErrorCode() string {
+	if t == nil {
+		return ""
+	}
+	if t.Error != nil && t.Error.Code != "" {
+		return t.Error.Code
+	}
+	if t.ProviderError == nil {
+		return ""
+	}
+	if code, ok := t.ProviderError["code"]; ok && code != nil {
+		return strings.TrimSpace(fmt.Sprint(code))
+	}
+	return ""
+}
+
+func (t *Task) FailureReason() string {
+	if t == nil {
+		return "unknown error"
+	}
+	reason := ""
+	if t.Error != nil {
+		reason = strings.TrimSpace(t.Error.Message)
+	}
+	if reason == "" && t.ProviderError != nil {
+		if message, ok := t.ProviderError["message"]; ok && message != nil {
+			reason = strings.TrimSpace(fmt.Sprint(message))
+		}
+	}
+	if reason == "" {
+		reason = "unknown error"
+	}
+	if code := t.ProviderErrorCode(); code != "" && !strings.HasPrefix(reason, code+":") {
+		return code + ": " + reason
+	}
+	return reason
 }
 
 func (t *Task) URLs() []string {

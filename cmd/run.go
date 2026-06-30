@@ -6,11 +6,13 @@ import (
 )
 
 var (
-	runParams  []string
-	runOutput  string
-	runTimeout int
-	runRefresh bool
-	runStream  bool
+	runParams                []string
+	runOutput                string
+	runTimeout               int
+	runRefresh               bool
+	runStream                bool
+	runUseSkillModelFallback bool
+	runUseReferenceCurl      bool
 )
 
 var runCmd = &cobra.Command{
@@ -48,4 +50,6 @@ func init() {
 	runCmd.Flags().IntVar(&runTimeout, "timeout", 600, "Maximum seconds to wait for result (default 10 minutes)")
 	runCmd.Flags().BoolVar(&runRefresh, "refresh", false, "Refresh cached model contract before running")
 	runCmd.Flags().BoolVar(&runStream, "stream", false, "Stream LLM output as it is generated")
+	runCmd.Flags().BoolVar(&runUseSkillModelFallback, "use-skill-model-fallback", false, "Use skill models reference curl as a CLI-managed fallback when no contract exists")
+	runCmd.Flags().BoolVar(&runUseReferenceCurl, "use-reference-curl", false, "Execute the skill models reference curl internally as a last-resort fallback")
 }

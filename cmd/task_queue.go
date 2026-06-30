@@ -61,6 +61,14 @@ func printQueueTaskStatus(task *queue.Task) error {
 	if task.Status == "failed" && task.Error != nil {
 		fmt.Printf("Error:  %s\n", task.Error.Message)
 	}
+	if task.Status == "failed" && task.ErrorType != "" {
+		fmt.Printf("ErrorType: %s\n", task.ErrorType)
+	}
+	if task.Status == "failed" {
+		if code := task.ProviderErrorCode(); code != "" {
+			fmt.Printf("ProviderCode: %s\n", code)
+		}
+	}
 	for _, u := range task.URLs() {
 		fmt.Printf("URL:    %s\n", u)
 	}

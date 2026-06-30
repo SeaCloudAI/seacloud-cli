@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/modelendpoints"
 )
@@ -51,8 +52,16 @@ func NewClient() *Client {
 		baseURL:    base,
 		listURL:    config.RewriteURLThroughFolkosProxy(modelendpoints.ConfiguredURL(ListURL, modelendpoints.EnvListURL)),
 		specURL:    config.RewriteURLThroughFolkosProxy(modelendpoints.ConfiguredURL(SpecURL, modelendpoints.EnvSpecURL)),
-		authToken:  config.ExecTokenFromEnv(),
+		authToken:  apiKeyFromConfig(),
 	}
+}
+
+func apiKeyFromConfig() string {
+	cfg, err := config.Load()
+	if err != nil {
+		return config.ExecTokenFromEnv()
+	}
+	return strings.TrimSpace(cfg.APIKey)
 }
 
 func (c *Client) get(path string, out any) error {
@@ -63,6 +72,9 @@ func (c *Client) get(path string, out any) error {
 }
 
 func (c *Client) getURL(rawURL string, out any) error {
+	if strings.TrimSpace(c.authToken) == "" {
+		return clierrors.ErrNoAPIKey()
+	}
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err
@@ -116,6 +128,7 @@ type Model struct {
 	SourceID         string   `json:"source_id,omitempty"`
 	HasSpec          bool     `json:"has_spec,omitempty"`
 	SpecProtocol     string   `json:"spec_protocol,omitempty"`
+	Curl             string   `json:"curl,omitempty"`
 }
 
 // ModelsListResponse is the data field from /api/v1/skill/models.
@@ -129,11 +142,12 @@ type ModelsListResponse struct {
 
 // ListParams holds query parameters for List.
 type ListParams struct {
-	Page     int
-	PageSize int
-	Type     string
-	Keywords string
-	Provider string
+	Page        int
+	PageSize    int
+	Type        string
+	Keywords    string
+	Provider    string
+	IncludeCurl bool
 }
 
 func (c *Client) List(params ListParams) (*ModelsListResponse, error) {
@@ -245,6 +259,9 @@ func buildQuery(params ListParams) url.Values {
 	}
 	if params.Provider != "" {
 		q.Set("provider", params.Provider)
+	}
+	if params.IncludeCurl {
+		q.Set("include_curl", "true")
 	}
 	return q
 }

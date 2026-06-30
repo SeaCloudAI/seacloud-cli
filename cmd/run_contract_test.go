@@ -58,39 +58,6 @@ func TestRunUsesQueueContractAndPrintsURL(t *testing.T) {
 	}
 }
 
-func TestRunUsesGenericQueueContractWhenContract404(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/api/v1/skill/model-contracts/gpt_image_1":
-			_, _ = w.Write([]byte(`{"status":{"code":404,"message":"missing"},"data":null}`))
-		case "/model/v1/queue/gpt_image_1":
-			var body map[string]any
-			if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body["prompt"] != "A red apple" {
-				t.Fatalf("unexpected generic queue body: body=%#v err=%v", body, err)
-			}
-			_, _ = w.Write([]byte(`{"request_id":"req-generic","status":"queued"}`))
-		case "/model/v1/queue/gpt_image_1/requests/req-generic/status":
-			_, _ = w.Write([]byte(`{"request_id":"req-generic","status":"completed","progress":1}`))
-		case "/model/v1/queue/gpt_image_1/requests/req-generic/response":
-			_, _ = w.Write([]byte(`{"request_id":"req-generic","status":"completed","outputs":[{"type":"image","url":"https://example.com/generic.png"}]}`))
-		default:
-			t.Fatalf("unexpected request %s %s", r.Method, r.URL.Path)
-		}
-	}))
-	defer server.Close()
-
-	setupRunCommandTest(t, server.URL)
-	stdout, _, err := executeRoot(t, "run", "gpt_image_1",
-		"--param", "prompt=A red apple", "--output", "url", "--timeout", "1")
-	if err != nil {
-		t.Fatalf("run returned error: %v", err)
-	}
-	if !strings.Contains(stdout, "https://example.com/generic.png") {
-		t.Fatalf("expected generic queue output URL, got stdout=%q", stdout)
-	}
-}
-
 func TestRunRejectsIncompatibleContractWithoutLegacyFallback(t *testing.T) {
 	var specCalled bool
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -120,7 +87,7 @@ func TestRunRejectsIncompatibleContractWithoutLegacyFallback(t *testing.T) {
 	}
 }
 
-func TestRunQueueDryRunReadsLocalContractWithoutAPIKey(t *testing.T) {
+func TestRunQueueDryRunReadsLocalContractWithAPIKey(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		writeContractResponse(t, w, r)
@@ -128,7 +95,6 @@ func TestRunQueueDryRunReadsLocalContractWithoutAPIKey(t *testing.T) {
 	defer server.Close()
 
 	setupRunCommandTest(t, server.URL)
-	t.Setenv(config.EnvFolkosExecToken, "")
 	_, stderr, err := executeRoot(t, "--dry-run", "run", "gpt_image_1", "--param", "prompt=A red apple")
 	if err != nil {
 		t.Fatalf("dry-run returned error: %v", err)
@@ -264,6 +230,7 @@ func setupRunCommandTest(t *testing.T, serviceURL string) {
 	t.Setenv("SEACLOUD_GENERATION_URL", serviceURL)
 	models.BaseURL = ""
 	contracts.BaseURL = ""
+	contracts.ContractBaseURL = ""
 	queue.BaseURL = ""
 	dryRun = false
 	runParams = nil
@@ -271,6 +238,7 @@ func setupRunCommandTest(t *testing.T, serviceURL string) {
 	runAsyncOutput = ""
 	runTimeout = 600
 	runRefresh, runStream = false, false
+	runUseSkillModelFallback, runUseReferenceCurl = false, false
 	taskStatusOutput = ""
 }
 

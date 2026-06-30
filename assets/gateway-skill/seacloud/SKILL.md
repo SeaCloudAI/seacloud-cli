@@ -73,3 +73,25 @@ Use `input_schema`, `required`, field descriptions, `examples`, `protocol`,
 requirements, image/video dimensions, object/array shapes, and upstream task
 IDs before retrying. Check backend logs or provider snapshots only when task
 status and model spec do not explain the failure.
+
+If `model-contracts` returns 404, do not execute fallback curl directly from
+the shell. First inspect the API-key protected skill models fallback through
+the CLI:
+
+```bash
+seacloud models spec <model_id> --output json
+seacloud --dry-run run <model_id> --use-skill-model-fallback --param key=value
+```
+
+For LLM-only fallback checks, use:
+
+```bash
+seacloud --dry-run llm run <model_id> --use-skill-model-fallback --param key=value
+```
+
+Only use `--use-reference-curl` after the CLI-managed fallback fails. The CLI
+loads the stored API key or managed runtime token and redacts credentials; an
+agent must not copy a fallback curl into the shell or construct Authorization
+headers manually. If no usable skill model fallback is found, search the
+official provider documentation for required parameters, enum values, media
+dimensions, formats, and request body shape before any paid call.

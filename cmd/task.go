@@ -70,6 +70,9 @@ Exit codes:
 		fmt.Printf("Status: %s\n", task.Status)
 		if task.Status == "failed" && task.Error != nil {
 			fmt.Printf("Error:  %s\n", task.Error.Message)
+			if task.Error.Code != "" {
+				fmt.Printf("ProviderCode: %s\n", task.Error.Code)
+			}
 		}
 		for _, u := range task.URLs() {
 			fmt.Printf("URL:    %s\n", u)

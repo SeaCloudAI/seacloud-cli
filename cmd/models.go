@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/contracts"
 	"github.com/SeaCloudAI/seacloud-cli/internal/models"
 	"github.com/spf13/cobra"
@@ -95,7 +94,10 @@ Pagination fields:
 	},
 }
 
-var modelsSpecOutput string
+var (
+	modelsSpecOutput            string
+	modelsSpecShowReferenceCurl bool
+)
 
 var modelsSpecCmd = &cobra.Command{
 	Use:   "spec <model_id>",
@@ -129,7 +131,7 @@ Use --output json to get the raw structured contract including:
 func printModelContractSpec(modelID string) error {
 	contract, err := contracts.Get(modelID, contracts.Options{})
 	if errors.Is(err, contracts.ErrNotFound) {
-		return clierrors.ErrModelNotFound(modelID)
+		return printSkillModelsFallbackSpec(modelID, fallbackScopeAny)
 	} else if err != nil {
 		return err
 	}
@@ -174,6 +176,7 @@ func init() {
 	modelsListCmd.Flags().StringVar(&modelsListOutput, "output", "", "Output format: id (IDs only), json (full response)")
 
 	modelsSpecCmd.Flags().StringVar(&modelsSpecOutput, "output", "", "Output format (json)")
+	modelsSpecCmd.Flags().BoolVar(&modelsSpecShowReferenceCurl, "show-reference-curl", false, "Show fallback curl as reference-only guidance")
 
 	modelsCmd.AddCommand(modelsListCmd)
 	modelsCmd.AddCommand(modelsSpecCmd)

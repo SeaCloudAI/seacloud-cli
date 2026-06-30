@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/SeaCloudAI/seacloud-cli/internal/buildinfo"
+	"github.com/SeaCloudAI/seacloud-cli/internal/clierrors"
 	"github.com/SeaCloudAI/seacloud-cli/internal/config"
 	"github.com/SeaCloudAI/seacloud-cli/internal/modelendpoints"
 )
@@ -39,8 +40,16 @@ func NewClient() *Client {
 		httpClient: &http.Client{Timeout: defaultTimeout},
 		baseURL:    config.RewriteURLThroughFolkosProxy(base),
 		specURL:    config.RewriteURLThroughFolkosProxy(modelendpoints.ConfiguredURL(SpecURL, modelendpoints.EnvSpecURL)),
-		authToken:  config.ExecTokenFromEnv(),
+		authToken:  apiKeyFromConfig(),
 	}
+}
+
+func apiKeyFromConfig() string {
+	cfg, err := config.Load()
+	if err != nil {
+		return config.ExecTokenFromEnv()
+	}
+	return strings.TrimSpace(cfg.APIKey)
 }
 
 func (c *Client) Get(modelID string) (*ModelContract, error) {
@@ -66,6 +75,9 @@ func (c *Client) get(path string, out any) error {
 }
 
 func (c *Client) getURL(rawURL string, out any) error {
+	if strings.TrimSpace(c.authToken) == "" {
+		return clierrors.ErrNoAPIKey()
+	}
 	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return err

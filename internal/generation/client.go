@@ -88,7 +88,8 @@ type InputBlock struct {
 // The API returns either a plain string or an object like
 // {"code": 123, "error_message": "..."}.
 type TaskError struct {
-	Message string
+	Code    string `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 }
 
 func (e *TaskError) UnmarshalJSON(b []byte) error {
@@ -100,11 +101,15 @@ func (e *TaskError) UnmarshalJSON(b []byte) error {
 	}
 	// object
 	var obj struct {
+		Code         any    `json:"code"`
 		Message      string `json:"message"`
 		ErrorMessage string `json:"error_message"`
 	}
 	if err := json.Unmarshal(b, &obj); err != nil {
 		return err
+	}
+	if obj.Code != nil {
+		e.Code = fmt.Sprint(obj.Code)
 	}
 	if obj.ErrorMessage != "" {
 		e.Message = obj.ErrorMessage

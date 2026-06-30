@@ -48,6 +48,8 @@ func init() {
 	runAsyncCmd.Flags().StringArrayVar(&runParams, "param", nil, "Parameter as key=value (repeatable)")
 	runAsyncCmd.Flags().StringVar(&runAsyncOutput, "output", "", "Output format: json (default), id")
 	runAsyncCmd.Flags().BoolVar(&runRefresh, "refresh", false, "Refresh cached model contract before running")
+	runAsyncCmd.Flags().BoolVar(&runUseSkillModelFallback, "use-skill-model-fallback", false, "Use skill models reference curl as a CLI-managed fallback when no contract exists")
+	runAsyncCmd.Flags().BoolVar(&runUseReferenceCurl, "use-reference-curl", false, "Execute the skill models reference curl internally as a last-resort fallback")
 }
 
 func executeModelRunAsync(modelID, resolvedModelID string) error {
@@ -63,12 +65,11 @@ func executeModelRunAsync(modelID, resolvedModelID string) error {
 	if err != nil {
 		return err
 	}
-	if cfg.APIKey == "" {
-		return clierrors.ErrNoAPIKey()
-	}
-
 	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
 	if err == nil {
+		if cfg.APIKey == "" {
+			return clierrors.ErrNoAPIKey()
+		}
 		return runWithContractAsync(cfg.APIKey, cfg.AuthToken, modelID, resolvedModelID, contract, raw)
 	}
 	if errors.Is(err, contracts.ErrIncompatibleSchema) {
@@ -77,7 +78,7 @@ func executeModelRunAsync(modelID, resolvedModelID string) error {
 	if !errors.Is(err, contracts.ErrNotFound) {
 		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
 	}
-	return runWithContractAsync(cfg.APIKey, cfg.AuthToken, modelID, resolvedModelID, contracts.Generic(modelID), raw)
+	return executeRunAsyncFallback(cfg.APIKey, cfg.AuthToken, modelID, raw)
 }
 
 func runWithContractAsync(apiKey, authToken, modelID, resolvedModelID string, contract *contracts.ModelContract, raw map[string]string) error {

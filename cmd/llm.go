@@ -55,29 +55,38 @@ func executeLLMRun(modelID string) error {
 	if err != nil {
 		return err
 	}
+	contract, err := getLLMContract(modelID, cfg.AuthToken)
+	if err != nil {
+		if errors.Is(err, contracts.ErrNotFound) {
+			return executeLLMFallback(cfg.APIKey, modelID, raw)
+		}
+		return err
+	}
 	if cfg.APIKey == "" {
 		return clierrors.ErrNoAPIKey()
-	}
-
-	contract, err := getLLMContract(modelID)
-	if err != nil {
-		return err
 	}
 	return runLLMContract(cfg.APIKey, modelID, contract, raw)
 }
 
 func dryRunLLMRun(modelID string, raw map[string]string) error {
-	contract, err := getLLMContract(modelID)
+	cfg, err := config.Load()
 	if err != nil {
+		return err
+	}
+	contract, err := getLLMContract(modelID, cfg.AuthToken)
+	if err != nil {
+		if errors.Is(err, contracts.ErrNotFound) {
+			return executeLLMFallback(cfg.APIKey, modelID, raw)
+		}
 		return err
 	}
 	return dryRunLLMContract(modelID, contract, raw)
 }
 
-func getLLMContract(modelID string) (*contracts.ModelContract, error) {
+func getLLMContract(modelID, authToken string) (*contracts.ModelContract, error) {
 	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
 	if errors.Is(err, contracts.ErrNotFound) {
-		return nil, clierrors.ErrModelNotFound(modelID)
+		return nil, contracts.ErrNotFound
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
@@ -97,6 +106,8 @@ func init() {
 	llmRunCmd.Flags().IntVar(&runTimeout, "timeout", 600, "Maximum seconds to wait for result (default 10 minutes)")
 	llmRunCmd.Flags().BoolVar(&runRefresh, "refresh", false, "Refresh cached model contract before running")
 	llmRunCmd.Flags().BoolVar(&runStream, "stream", false, "Stream LLM output as it is generated")
+	llmRunCmd.Flags().BoolVar(&runUseSkillModelFallback, "use-skill-model-fallback", false, "Use skill models reference curl as a CLI-managed fallback when no LLM contract exists")
+	llmRunCmd.Flags().BoolVar(&runUseReferenceCurl, "use-reference-curl", false, "Execute the skill models reference curl internally as a last-resort fallback")
 
 	llmCmd.AddCommand(llmRunCmd)
 }

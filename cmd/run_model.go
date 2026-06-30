@@ -30,12 +30,11 @@ func executeModelRun(modelID, resolvedModelID string) error {
 	if err != nil {
 		return err
 	}
-	if cfg.APIKey == "" {
-		return clierrors.ErrNoAPIKey()
-	}
-
 	contract, err := contracts.Get(modelID, contracts.Options{Refresh: runRefresh})
 	if err == nil {
+		if cfg.APIKey == "" {
+			return clierrors.ErrNoAPIKey()
+		}
 		return runWithContract(cfg.APIKey, cfg.AuthToken, modelID, contract, raw)
 	}
 	if errors.Is(err, contracts.ErrIncompatibleSchema) {
@@ -44,7 +43,7 @@ func executeModelRun(modelID, resolvedModelID string) error {
 	if !errors.Is(err, contracts.ErrNotFound) {
 		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
 	}
-	return runWithContract(cfg.APIKey, cfg.AuthToken, modelID, contracts.Generic(modelID), raw)
+	return executeRunFallback(cfg.APIKey, cfg.AuthToken, modelID, raw)
 }
 
 func dryRunModel(modelID string, raw map[string]string) error {
@@ -55,7 +54,14 @@ func dryRunModel(modelID string, raw map[string]string) error {
 	if errors.Is(err, contracts.ErrIncompatibleSchema) {
 		return err
 	}
-	return dryRunContract(modelID, contracts.Generic(modelID), raw)
+	if !errors.Is(err, contracts.ErrNotFound) {
+		return fmt.Errorf("failed to fetch model contract for %q: %w", modelID, err)
+	}
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	return executeRunFallback(cfg.APIKey, cfg.AuthToken, modelID, raw)
 }
 
 func dryRunContract(modelID string, contract *contracts.ModelContract, raw map[string]string) error {
@@ -165,10 +171,7 @@ func pollQueueResult(client *queue.Client, contract *contracts.ModelContract, re
 		case "completed":
 			return client.GetResult(*contract, requestID)
 		case "failed":
-			reason := "unknown error"
-			if status.Error != nil && status.Error.Message != "" {
-				reason = status.Error.Message
-			}
+			reason := status.FailureReason()
 			if clierrors.IsInsufficientBalance(fmt.Errorf("%s", reason)) {
 				return nil, clierrors.ErrInsufficientBalance()
 			}
@@ -256,6 +259,15 @@ func printQueueTask(task *queue.Task) error {
 		return printJSON(task)
 	}
 	fmt.Printf("Status: %s\n", task.Status)
+	if task.Status == "failed" {
+		fmt.Printf("Error: %s\n", task.FailureReason())
+		if task.ErrorType != "" {
+			fmt.Printf("ErrorType: %s\n", task.ErrorType)
+		}
+		if code := task.ProviderErrorCode(); code != "" {
+			fmt.Printf("ProviderCode: %s\n", code)
+		}
+	}
 	for _, u := range task.URLs() {
 		fmt.Printf("URL: %s\n", u)
 	}

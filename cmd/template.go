@@ -53,8 +53,12 @@ var templateListCmd = &cobra.Command{
 Use --visibility to filter public/private scope, --limit to cap the result, and
 --offset for offset pagination. Use --format json for the raw API response.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		visibility, err := normalizeTemplateVisibility(templateListOpts.visibility)
+		if err != nil {
+			return err
+		}
 		params := &build.ListTemplatesParams{
-			Visibility: templateListOpts.visibility,
+			Visibility: visibility,
 			Limit:      templateListOpts.limit,
 			Offset:     templateListOpts.offset,
 		}
@@ -191,10 +195,11 @@ var templateBuildCmd = &cobra.Command{
 	Long: `Build a sandbox template.
 
 Template source is required and is resolved in this order:
-  1. --dockerfile path
-  2. --image image
-  3. --from-template template-ref
-  4. ./Dockerfile or ./e2b.Dockerfile in the current directory
+  1. --from-template template-ref + --dockerfile path applies Dockerfile steps on top of the template
+  2. --dockerfile path
+  3. --image image
+  4. --from-template template-ref
+  5. ./Dockerfile or ./e2b.Dockerfile in the current directory
 
 Defaults:
   --poll-interval 2s
@@ -210,11 +215,15 @@ build request without creating or updating a template.`,
 		if err != nil {
 			return err
 		}
+		visibility, err := normalizeTemplateVisibility(templateBuildOpts.visibility)
+		if err != nil {
+			return err
+		}
 		opts := &sandboxgo.TemplateBuildOptions{
 			Tags:         splitList(templateBuildOpts.tags),
 			Envs:         parseKeyValues(templateBuildOpts.env),
 			Workdir:      templateBuildOpts.workdir,
-			Visibility:   templateBuildOpts.visibility,
+			Visibility:   visibility,
 			PollInterval: templateBuildOpts.pollInterval,
 			OnBuildLog: func(entry sandboxgo.LogEntry) {
 				fmt.Fprintln(os.Stderr, entry.String())
@@ -466,6 +475,11 @@ previous generated files.`,
 func buildTemplateDefinition() (*sandboxgo.Template, string, error) {
 	template := sandboxgo.NewTemplate()
 	switch {
+	case strings.TrimSpace(templateBuildOpts.fromTemplate) != "" && strings.TrimSpace(templateBuildOpts.dockerfile) != "":
+		ref := strings.TrimSpace(templateBuildOpts.fromTemplate)
+		path := strings.TrimSpace(templateBuildOpts.dockerfile)
+		tpl, err := templateFromBaseAndDockerfile(ref, path)
+		return tpl, ref + "+" + path, err
 	case strings.TrimSpace(templateBuildOpts.dockerfile) != "":
 		path := strings.TrimSpace(templateBuildOpts.dockerfile)
 		tpl, err := template.FromDockerfile(path)
@@ -485,6 +499,59 @@ func buildTemplateDefinition() (*sandboxgo.Template, string, error) {
 		}
 		return nil, "", cliMissingParam("--dockerfile/--image/--from-template", "Pass a source flag or add ./Dockerfile, for example: seacloud --dry-run template build demo --image python:3.13")
 	}
+}
+
+func templateFromBaseAndDockerfile(baseRef, dockerfilePath string) (*sandboxgo.Template, error) {
+	dockerfileTemplate, err := sandboxgo.NewTemplate().FromDockerfile(dockerfilePath)
+	if err != nil {
+		return nil, err
+	}
+	baseTemplate := sandboxgo.NewTemplate().FromTemplate(baseRef)
+	return applyDockerfileRequestToTemplate(baseTemplate, dockerfileTemplate.Request())
+}
+
+func applyDockerfileRequestToTemplate(template *sandboxgo.Template, req *build.BuildRequest) (*sandboxgo.Template, error) {
+	if template == nil {
+		return nil, fmt.Errorf("sandbox template is required")
+	}
+	if req == nil {
+		return template, nil
+	}
+	for _, step := range req.Steps {
+		switch step.Type {
+		case "RUN":
+			if len(step.Args) > 0 {
+				template.RunCmd(step.Args[0], nil)
+			}
+		case "ENV":
+			if len(step.Args)%2 != 0 {
+				return nil, fmt.Errorf("sandbox: invalid Dockerfile ENV step")
+			}
+			envs := make(map[string]string, len(step.Args)/2)
+			for i := 0; i+1 < len(step.Args); i += 2 {
+				envs[step.Args[i]] = step.Args[i+1]
+			}
+			template.SetEnvs(envs)
+		case "WORKDIR":
+			if len(step.Args) > 0 {
+				template.SetWorkdir(step.Args[0])
+			}
+		case "USER":
+			if len(step.Args) > 0 {
+				template.SetUser(step.Args[0])
+			}
+		case "COPY":
+			if len(step.Args) >= 2 {
+				template.Copy(step.Args[0], step.Args[1], nil)
+			}
+		default:
+			return nil, fmt.Errorf("sandbox: unsupported Dockerfile step: %s", step.Type)
+		}
+	}
+	if strings.TrimSpace(req.StartCmd) != "" {
+		template.SetStartCmd(req.StartCmd, sandboxgo.ReadyCmd{})
+	}
+	return template, nil
 }
 
 func templateJSONForDryRun(template *sandboxgo.Template) (string, error) {
@@ -536,6 +603,18 @@ func resolveTemplateID(ctx context.Context, client *sandboxapi.Client, ref strin
 
 func templateOutputJSON() bool {
 	return templateOpts.output == "json" || sandboxOpts.output == "json"
+}
+
+func normalizeTemplateVisibility(value string) (string, error) {
+	value = strings.TrimSpace(strings.ToLower(value))
+	switch value {
+	case "", "personal", "team", "official":
+		return value, nil
+	case "private":
+		return "personal", nil
+	default:
+		return "", cliParamError("--visibility", fmt.Sprintf("unsupported value %q; allowed values are: personal, team, official", value), "Use --visibility personal for private user-owned templates.")
+	}
 }
 
 func buildTemplateWithClient(ctx context.Context, client *sandboxapi.Client, template *sandboxgo.Template, name string, opts *sandboxgo.TemplateBuildOptions) (*sandboxgo.TemplateBuildInfo, error) {

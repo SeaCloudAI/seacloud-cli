@@ -59,6 +59,47 @@ func TestBuildTemplateDefinitionFindsDockerfile(t *testing.T) {
 	}
 }
 
+func TestBuildTemplateDefinitionCombinesFromTemplateAndDockerfile(t *testing.T) {
+	original := templateBuildOpts
+	t.Cleanup(func() { templateBuildOpts = original })
+	dir := t.TempDir()
+	dockerfile := filepath.Join(dir, "Dockerfile")
+	if err := os.WriteFile(dockerfile, []byte(strings.Join([]string{
+		"FROM python:3.13-slim",
+		"ENV APP_ENV=prod",
+		"RUN python --version",
+		"WORKDIR /app",
+		"CMD [\"python\", \"server.py\"]",
+	}, "\n")), 0o644); err != nil {
+		t.Fatalf("write Dockerfile: %v", err)
+	}
+
+	templateBuildOpts.fromTemplate = "base"
+	templateBuildOpts.dockerfile = dockerfile
+	template, source, err := buildTemplateDefinition()
+	if err != nil {
+		t.Fatalf("buildTemplateDefinition returned error: %v", err)
+	}
+	if source != "base+"+dockerfile {
+		t.Fatalf("unexpected source %q", source)
+	}
+	jsonText, err := templateJSONForDryRun(template)
+	if err != nil {
+		t.Fatalf("templateJSONForDryRun returned error: %v", err)
+	}
+	if !strings.Contains(jsonText, `"fromTemplate": "base"`) {
+		t.Fatalf("expected fromTemplate in template json, got %s", jsonText)
+	}
+	if strings.Contains(jsonText, `"fromImage":`) {
+		t.Fatalf("did not expect fromImage in combined template json, got %s", jsonText)
+	}
+	for _, want := range []string{`"ENV"`, `"RUN"`, `"WORKDIR"`, `"startCmd": "'python' 'server.py'"`} {
+		if !strings.Contains(jsonText, want) {
+			t.Fatalf("expected %s in template json, got %s", want, jsonText)
+		}
+	}
+}
+
 func TestWriteTemplateProject(t *testing.T) {
 	dir := t.TempDir()
 	if err := writeTemplateProject(dir, "python", "demo", false, true); err != nil {
@@ -138,5 +179,40 @@ func TestBuildTemplateWithClientUsesAuthToken(t *testing.T) {
 	}
 	if createBody["name"] != "demo" {
 		t.Fatalf("unexpected create body: %+v", createBody)
+	}
+}
+
+func TestNormalizeTemplateVisibility(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "empty", input: "", want: ""},
+		{name: "personal", input: "personal", want: "personal"},
+		{name: "team", input: "team", want: "team"},
+		{name: "official", input: "official", want: "official"},
+		{name: "private alias", input: "private", want: "personal"},
+		{name: "trims and lowercases", input: " Personal ", want: "personal"},
+		{name: "invalid", input: "public", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := normalizeTemplateVisibility(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if got != tt.want {
+				t.Fatalf("normalizeTemplateVisibility(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
 	}
 }

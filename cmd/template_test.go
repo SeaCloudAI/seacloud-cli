@@ -110,6 +110,19 @@ func TestWriteTemplateProject(t *testing.T) {
 			t.Fatalf("expected %s to exist: %v", name, err)
 		}
 	}
+	readme, err := os.ReadFile(filepath.Join(dir, "README.md"))
+	if err != nil {
+		t.Fatalf("read generated README: %v", err)
+	}
+	for _, want := range []string{
+		"seacloud auth login",
+		"seacloud --dry-run template build demo-dev",
+		"seacloud template build demo",
+	} {
+		if !strings.Contains(string(readme), want) {
+			t.Fatalf("expected generated README to contain %q:\n%s", want, readme)
+		}
+	}
 	if err := writeTemplateProject(dir, "python", "demo", false, true); err == nil {
 		t.Fatal("expected overwrite without force to fail")
 	}

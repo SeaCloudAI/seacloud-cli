@@ -9,7 +9,7 @@ description: >-
   user asks to generate video, image, audio, music, 3D, run a SeaCloud model,
   inspect SeaCloud tasks, find/install agent skills, or automate SeaCloud
   workflows.
-version: 0.0.19
+version: 0.0.20
 allowed-tools: Bash(seacloud:*), Bash(npx seacloud:*), Bash(npx -y @seacloudai/seacloud-cli:*)
 ---
 
@@ -23,7 +23,8 @@ skills for creative workflows through SkillHub.
 
 Model execution can use a SeaCloud API key or managed runtime token.
 Sandbox and template commands require a SeaCloud login session from
-`seacloud auth login`.
+`seacloud auth login`; `seacloud auth set-key <api-key>` is not enough for
+sandbox or template operations.
 Use `seacloud account balance` to diagnose paid-credit issues before retrying
 model generation.
 
@@ -35,6 +36,20 @@ seacloud agent describe
 
 Use that dynamic output as the source of truth for available commands,
 parameters, output modes, authentication requirements, and recovery steps.
+
+For non-interactive sandbox automation, prefer:
+
+```bash
+seacloud auth login
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud --dry-run sandbox kill <sandbox_id>
+seacloud sandbox kill <sandbox_id>
+```
+
+Sandbox/template endpoint priority is `--base-url`,
+`SEACLOUD_SANDBOX_URL`, `SEACLOUD_BASE_URL`, then
+`https://cloud.seaart.ai/api/sandbox/v1`.
 
 For model calls, `seacloud run` accepts text values, remote HTTP(S) URLs, and
 local file paths when the model contract field allows that media type:

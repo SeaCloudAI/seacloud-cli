@@ -29,6 +29,9 @@ var templateCmd = &cobra.Command{
 This command exposes template init, build, list, get, delete, build status,
 build logs, build history, and tags on top of the SeaCloud sandbox template APIs.
 
+Template commands require a SeaCloud login session from ` + "`seacloud auth login`" + `; ` + "`seacloud auth set-key <api-key>`" + ` is not enough.
+Endpoint priority: --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.
+
 Each command documents defaults, required flags, output shape, and pagination
 controls. Use --format json or --output json for structured output. Use
 --dry-run before build, delete, init, migrate, or tag mutation commands to
@@ -948,9 +951,16 @@ func templateReadme(name, install string) string {
 
 ## Build
 
+Authenticate before real template operations:
+
+`+"```bash"+`
+seacloud auth login
+`+"```"+`
+
 Development:
 
 `+"```bash"+`
+seacloud --dry-run template build %s-dev
 seacloud template build %s-dev
 `+"```"+`
 
@@ -959,7 +969,7 @@ Production:
 `+"```bash"+`
 seacloud template build %s
 `+"```"+`
-`, name, install, name, name)
+`, name, install, name, name, name)
 }
 
 func init() {

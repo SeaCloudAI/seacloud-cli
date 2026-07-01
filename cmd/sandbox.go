@@ -37,6 +37,9 @@ The command shape follows E2B's sandbox CLI for create/list/exec/connect/kill/me
 and also exposes Atlas v1 APIs that are available in the SDKs: volumes, lifecycle
 events, webhooks, teams, logs, pause, refresh, timeout, and network policy updates.
 
+Sandbox commands require a SeaCloud login session from ` + "`seacloud auth login`" + `; ` + "`seacloud auth set-key <api-key>`" + ` is not enough.
+Endpoint priority: --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.
+
 Output defaults to a compact table for humans. Use --output json for structured
 output. List and log commands expose --limit plus cursor or token flags to keep
 responses small.

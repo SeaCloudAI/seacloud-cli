@@ -36,7 +36,7 @@
 - **Local file parameters**: Pass local image, video, and audio paths with `--param`; the CLI converts or uploads them before submission.
 - **LLM model execution**: Use `seacloud llm run` when a command must accept only LLM contract models.
 - **Task tracking**: Poll task status and print result URLs or full JSON responses.
-- **Sandbox workloads**: Create, connect to, execute commands in, observe, and clean up SeaCloud sandboxes with E2B-compatible command shapes.
+- **Sandbox and template workloads**: Create, connect to, execute commands in, observe, and clean up SeaCloud sandboxes, and manage sandbox templates with E2B-compatible command shapes.
 - **SkillHub integration**: Search, install, and configure agent skills from SeaCloud SkillHub.
 - **Agent-friendly UX**: Supports `--dry-run`, JSON output, output limits, actionable errors, stable command shapes, and copy-pasteable examples.
 
@@ -210,11 +210,10 @@ seacloud skills config --show
 ### Manage sandboxes
 
 ```bash
-seacloud sandbox create base
-seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --output json
-seacloud sandbox exec <sandbox_id> ls -la
-seacloud sandbox connect <sandbox_id>
+seacloud auth login
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud --dry-run sandbox kill <sandbox_id>
 seacloud sandbox kill <sandbox_id>
 ```
 
@@ -325,6 +324,7 @@ Core sandbox commands follow the E2B CLI shape:
 seacloud sandbox create [template]
 seacloud sandbox create base --no-connect --wait
 seacloud sandbox list --state running,paused --metadata app=agent --limit 10 --next-token <token>
+seacloud sandbox info <sandbox_id>
 seacloud sandbox exec <sandbox_id> "python --version"
 seacloud sandbox exec --background <sandbox_id> "sleep 60 && echo done"
 seacloud sandbox exec --cwd /workspace --user root --env NODE_ENV=production <sandbox_id> node app.js
@@ -353,7 +353,10 @@ seacloud sandbox volume delete <volume_id>
 
 seacloud sandbox events --type sandbox.lifecycle.created
 seacloud sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_... --event sandbox.lifecycle.created --max-attempts 5 --delay-seconds 1,5,30
+seacloud sandbox webhook list --limit 20
+seacloud sandbox webhook get <webhook_id>
 seacloud sandbox webhook update <webhook_id> --enabled=false
+seacloud sandbox webhook delete <webhook_id>
 seacloud sandbox webhook deliveries --status failed
 seacloud sandbox webhook replay <delivery_id>
 
@@ -396,6 +399,7 @@ seacloud template build my-template --image python:3.13 --cpu-count 2 --memory-m
 seacloud template build my-template --from-template base --no-wait
 seacloud template list --format json
 seacloud template get my-template
+seacloud template exists my-template
 seacloud template builds my-template
 seacloud template status <template_id> <build_id>
 seacloud template logs <template_id> <build_id> --limit 100
@@ -419,9 +423,10 @@ seacloud version
 - Use `seacloud llm run <model_id>` when the selected model must be an LLM contract.
 - Use `seacloud run-async <model_id>` when automation should submit a task and return a task ID without polling.
 - Use `seacloud models spec <model_id> --output json` before running a model to inspect parameters and examples.
-- Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them.
+- Sandbox and template commands use your SeaCloud login session. Run `seacloud auth login` before calling them; `seacloud auth set-key <api-key>` is not enough.
 - For agent automation, create sandboxes with `--no-connect --wait --output json`, keep the returned sandbox ID, and clean it up explicitly with `seacloud sandbox kill <sandbox_id>`.
-- Set `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin. Sandbox commands use the same origin and normalize to `https://cloud.seaart.ai/api/sandbox/v1` by default.
+- Sandbox/template endpoint priority is `--base-url`, `SEACLOUD_SANDBOX_URL`, `SEACLOUD_BASE_URL`, then `https://cloud.seaart.ai/api/sandbox/v1`.
+- Set `SEACLOUD_SANDBOX_URL` for a sandbox API base URL override, or `SEACLOUD_BASE_URL` when you need a non-default SeaCloud API origin.
 - Set `SEACLOUD_NAMESPACE_ID`, `SEACLOUD_USER_ID`, and `SEACLOUD_PROJECT_ID` when calling scoped sandbox APIs such as events, webhooks, volumes, teams, or metrics.
 - Use global `--dry-run` before write/delete/replay operations. Dry-run output shows the method, path, body/query, destructive status, and the next step.
 - Use `--limit`, `--next-token`, `--cursor`, or `--offset` on list/log/event commands to keep responses small.

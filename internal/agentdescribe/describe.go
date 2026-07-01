@@ -200,6 +200,7 @@ func Build(cliVersion string) Description {
 					"If no usable skill model fallback is found, search the official provider documentation for required parameters, enum values, media dimensions, formats, and request body shape before any paid call.",
 				},
 			},
+			sandboxTemplateEndpointRule(),
 		},
 		Recovery: []RecoveryCase{
 			{Problem: "CLI is missing", Actions: []string{"Run seacloud --version.", "If missing, install with npm install -g @seacloudai/seacloud-cli."}},

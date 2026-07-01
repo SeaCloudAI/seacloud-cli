@@ -34,7 +34,14 @@ Agent path:
   seacloud sandbox --help
   seacloud template --help
   seacloud task status <task_id> --output json
-  seacloud skills find "<task>"`,
+  seacloud skills find "<task>"
+
+Sandbox automation path:
+  seacloud auth login
+  seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+  seacloud sandbox exec <sandbox_id> "python --version"
+  seacloud --dry-run sandbox kill <sandbox_id>
+  seacloud sandbox kill <sandbox_id>`,
 	Version: buildinfo.Version,
 }
 

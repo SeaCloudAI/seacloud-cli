@@ -3,8 +3,8 @@ APP ?= seacloud
 VERSION ?= $(shell node -p "require('./package.json').version" 2>/dev/null || git describe --tags --always --dirty 2>/dev/null || echo dev)
 PREFIX ?= /usr/local
 
-SEACLOUD_BASE_URL ?= https://real-cloud.seaart.dev
-SEACLOUD_MODELS_URL ?= https://sea-cloud-admin-web.real-cloud.seaart.dev
+SEACLOUD_BASE_URL ?= https://cloud.seaart.ai
+SEACLOUD_MODELS_URL ?= https://sea-cloud-admin-web.real-cloud.seaart.ai
 SEACLOUD_MODEL_CONTRACTS_URL ?= $(SEACLOUD_MODELS_URL)
 SEACLOUD_MODELS_ROOT := $(patsubst %/,%,$(SEACLOUD_MODELS_URL))
 SEACLOUD_UPLOAD_URL ?= $(SEACLOUD_MODELS_ROOT)/api/v1/storage/files

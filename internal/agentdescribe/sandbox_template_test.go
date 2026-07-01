@@ -44,7 +44,10 @@ func TestBuildIncludesSandboxCommandMap(t *testing.T) {
 		"seacloud sandbox network update <sandbox_id> --allow-internet-access=false",
 		"seacloud sandbox volume create cache",
 		"seacloud sandbox events --type sandbox.lifecycle.created --limit 20",
+		"seacloud sandbox webhook list --limit 20",
+		"seacloud sandbox webhook get <webhook_id>",
 		"seacloud sandbox webhook replay <delivery_id>",
+		"seacloud sandbox webhook delete <webhook_id>",
 		"seacloud sandbox team metrics-max <team_id> --metric concurrent_sandboxes",
 		"seacloud sandbox observability",
 	} {
@@ -97,6 +100,24 @@ func TestBuildIncludesSandboxTemplateSafetyRules(t *testing.T) {
 	} {
 		if !ruleHasDetail(*rule, detail) {
 			t.Fatalf("expected safety detail %q in %#v", detail, rule.Details)
+		}
+	}
+}
+
+func TestBuildIncludesSandboxTemplateEndpointRules(t *testing.T) {
+	desc := Build("test-version")
+
+	rule := findRule(desc.EndpointRules, "Sandbox and template endpoint rules")
+	if rule == nil {
+		t.Fatalf("expected sandbox/template endpoint rule in %#v", desc.EndpointRules)
+	}
+	for _, detail := range []string{
+		"Sandbox and template commands require a SeaCloud login session from seacloud auth login; seacloud auth set-key <api-key> is not enough.",
+		"Endpoint priority is --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.",
+		"Use SEACLOUD_NAMESPACE_ID, SEACLOUD_USER_ID, and SEACLOUD_PROJECT_ID or matching flags for scoped sandbox APIs.",
+	} {
+		if !ruleHasDetail(*rule, detail) {
+			t.Fatalf("expected endpoint detail %q in %#v", detail, rule.Details)
 		}
 	}
 }

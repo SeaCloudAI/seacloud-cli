@@ -95,3 +95,14 @@ func sandboxTemplateSafetyRule() Rule {
 		},
 	}
 }
+
+func sandboxTemplateEndpointRule() Rule {
+	return Rule{
+		Title: "Sandbox and template endpoint rules",
+		Details: []string{
+			"Sandbox and template commands require a SeaCloud login session from seacloud auth login; seacloud auth set-key <api-key> is not enough.",
+			"Endpoint priority is --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.",
+			"Use SEACLOUD_NAMESPACE_ID, SEACLOUD_USER_ID, and SEACLOUD_PROJECT_ID or matching flags for scoped sandbox APIs.",
+		},
+	}
+}

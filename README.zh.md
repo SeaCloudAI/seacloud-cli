@@ -33,7 +33,7 @@
 - **本地文件参数**：通过 `--param` 传入本地图片、视频、音频路径，CLI 会在提交前转换或上传。
 - **LLM 模型执行**：当命令必须只接受 LLM 模型时，使用 `seacloud llm run`。
 - **任务追踪**：轮询任务状态，输出结果 URL 或完整 JSON。
-- **沙箱工作负载**：用 E2B 兼容的命令形态创建、连接、执行、观测和清理 SeaCloud 沙箱。
+- **沙箱与模板工作负载**：用 E2B 兼容的命令形态创建、连接、执行、观测和清理 SeaCloud 沙箱，并管理沙箱模板。
 - **SkillHub 集成**：搜索、安装和配置 SeaCloud SkillHub 技能。
 - **Agent 友好**：支持 `--dry-run`、JSON 输出、输出限量、可操作错误、稳定命令结构和可直接复制的示例。
 
@@ -193,11 +193,10 @@ seacloud skills config --show
 ### 管理沙箱
 
 ```bash
-seacloud sandbox create base
-seacloud sandbox create base --no-connect --wait
-seacloud sandbox list --state running,paused --output json
-seacloud sandbox exec <sandbox_id> ls -la
-seacloud sandbox connect <sandbox_id>
+seacloud auth login
+seacloud sandbox create base --no-connect --wait --output json --metadata app=agent
+seacloud sandbox exec <sandbox_id> "python --version"
+seacloud --dry-run sandbox kill <sandbox_id>
 seacloud sandbox kill <sandbox_id>
 ```
 
@@ -304,6 +303,7 @@ seacloud run-async gpt_image_2 --param prompt="一只蓝色猫" --output id
 seacloud sandbox create [template]
 seacloud sandbox create base --no-connect --wait
 seacloud sandbox list --state running,paused --metadata app=agent --limit 10 --next-token <token>
+seacloud sandbox info <sandbox_id>
 seacloud sandbox exec <sandbox_id> "python --version"
 seacloud sandbox exec --background <sandbox_id> "sleep 60 && echo done"
 seacloud sandbox exec --cwd /workspace --user root --env NODE_ENV=production <sandbox_id> node app.js
@@ -332,7 +332,10 @@ seacloud sandbox volume delete <volume_id>
 
 seacloud sandbox events --type sandbox.lifecycle.created
 seacloud sandbox webhook create --name lifecycle --url https://example.com/webhook --secret whsec_... --event sandbox.lifecycle.created --max-attempts 5 --delay-seconds 1,5,30
+seacloud sandbox webhook list --limit 20
+seacloud sandbox webhook get <webhook_id>
 seacloud sandbox webhook update <webhook_id> --enabled=false
+seacloud sandbox webhook delete <webhook_id>
 seacloud sandbox webhook deliveries --status failed
 seacloud sandbox webhook replay <delivery_id>
 
@@ -375,6 +378,7 @@ seacloud template build my-template --image python:3.13 --cpu-count 2 --memory-m
 seacloud template build my-template --from-template base --no-wait
 seacloud template list --format json
 seacloud template get my-template
+seacloud template exists my-template
 seacloud template builds my-template
 seacloud template status <template_id> <build_id>
 seacloud template logs <template_id> <build_id> --limit 100
@@ -398,9 +402,10 @@ seacloud version
 - 当所选模型必须是 LLM 合约模型时，使用 `seacloud llm run <model_id>`。
 - 自动化只需要提交任务 ID、不等待轮询时，使用 `seacloud run-async <model_id>`。
 - 运行模型前，使用 `seacloud models spec <model_id> --output json` 查看参数和示例。
-- sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`。
+- sandbox/template 命令使用 SeaCloud 登录态；调用前先运行 `seacloud auth login`，只执行 `seacloud auth set-key <api-key>` 不够。
 - Agent 自动化场景建议使用 `--no-connect --wait --output json` 创建沙箱，保存返回的 sandbox ID，并用 `seacloud sandbox kill <sandbox_id>` 显式清理。
-- 需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`。sandbox 命令使用同一个主地址，并默认归一化到 `https://cloud.seaart.ai/api/sandbox/v1`。
+- sandbox/template endpoint 优先级是 `--base-url`、`SEACLOUD_SANDBOX_URL`、`SEACLOUD_BASE_URL`，最后是默认值 `https://cloud.seaart.ai/api/sandbox/v1`。
+- 需要覆盖 sandbox API 地址时设置 `SEACLOUD_SANDBOX_URL`；需要切换 SeaCloud API 主地址时设置 `SEACLOUD_BASE_URL`。
 - 调用 events、webhooks、volumes、teams、metrics 等带作用域的沙箱 API 时，可设置 `SEACLOUD_NAMESPACE_ID`、`SEACLOUD_USER_ID`、`SEACLOUD_PROJECT_ID`。
 - 写入、删除、重放这类操作前先使用全局 `--dry-run`。dry-run 输出会展示 method、path、body/query、是否破坏性操作和下一步提示。
 - list/log/event 类命令使用 `--limit`、`--next-token`、`--cursor` 或 `--offset` 控制输出量。

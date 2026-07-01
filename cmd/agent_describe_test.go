@@ -31,6 +31,8 @@ func TestAgentDescribePrintsGuide(t *testing.T) {
 		"seacloud sandbox observability",
 		"seacloud template tags assign my-template:v1 production stable",
 		"Sandbox and template safety rules",
+		"Sandbox and template endpoint rules",
+		"Endpoint priority is --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.",
 		"https://cloud.seaart.ai/settings/credits",
 	} {
 		if !strings.Contains(stdout, text) {

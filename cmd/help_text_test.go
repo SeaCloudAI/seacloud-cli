@@ -19,6 +19,10 @@ func TestOptimizedHelpText(t *testing.T) {
 			args: []string{"--help"},
 			contains: []string{
 				"SeaCloud CLI is an agent-facing multimodal execution CLI.",
+				"Sandbox automation path:",
+				"seacloud sandbox create base --no-connect --wait --output json --metadata app=agent",
+				"seacloud sandbox exec <sandbox_id> \"python --version\"",
+				"seacloud --dry-run sandbox kill <sandbox_id>",
 				"account     Check balance and billing readiness",
 				"agent       Describe SeaCloud CLI capabilities for agents",
 				"sandbox     Manage and interact with sandboxes",
@@ -26,6 +30,28 @@ func TestOptimizedHelpText(t *testing.T) {
 				"run         Run a model and wait for result URLs or JSON",
 				"run-async   Submit a model task asynchronously and print the task ID",
 				"Print what would be executed without making changes",
+			},
+		},
+		{
+			name: "sandbox",
+			args: []string{"sandbox", "--help"},
+			contains: []string{
+				"Manage and interact with SeaCloud sandboxes.",
+				"Sandbox commands require a SeaCloud login session from `seacloud auth login`; `seacloud auth set-key <api-key>` is not enough.",
+				"Endpoint priority: --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.",
+				"create        Create a sandbox",
+				"webhook       Manage lifecycle webhooks",
+			},
+		},
+		{
+			name: "template",
+			args: []string{"template", "--help"},
+			contains: []string{
+				"Manage sandbox templates with an E2B-compatible command shape.",
+				"Template commands require a SeaCloud login session from `seacloud auth login`; `seacloud auth set-key <api-key>` is not enough.",
+				"Endpoint priority: --base-url, SEACLOUD_SANDBOX_URL, SEACLOUD_BASE_URL, then https://cloud.seaart.ai/api/sandbox/v1.",
+				"exists      Check whether a template exists",
+				"tags        Manage template tags",
 			},
 		},
 		{

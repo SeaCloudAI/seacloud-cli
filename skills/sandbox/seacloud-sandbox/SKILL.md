@@ -24,6 +24,9 @@ If auth is missing or expired, run:
 seacloud auth login
 ```
 
+`seacloud auth set-key <api-key>` is not enough for sandbox or template
+operations; those commands need the login session.
+
 When a login command opens a browser, prints a URL, or shows a device code, tell the user the exact action required.
 
 ## Automation Defaults
@@ -103,7 +106,10 @@ Events, webhooks, and observability:
 ```bash
 seacloud sandbox events --type sandbox.lifecycle.created --limit 20
 seacloud sandbox webhook create --name lifecycle --url https://example.com/webhook --secret <secret> --event sandbox.lifecycle.created
+seacloud sandbox webhook list --limit 20
+seacloud sandbox webhook get <webhook_id>
 seacloud sandbox webhook update <webhook_id> --enabled=false
+seacloud sandbox webhook delete <webhook_id>
 seacloud sandbox webhook deliveries --status failed --limit 20
 seacloud sandbox webhook replay <delivery_id>
 seacloud sandbox team list
@@ -137,11 +143,15 @@ Sandbox and template commands use the SeaCloud login session.
 
 Useful overrides:
 
+- `--base-url`: command-line sandbox API base URL override.
 - `SEACLOUD_BASE_URL`: alternate SeaCloud API origin; sandbox commands normalize it to `/api/sandbox/v1`.
 - `SEACLOUD_SANDBOX_URL`: sandbox API base URL override.
 - `SEACLOUD_NAMESPACE_ID`: namespace scope for scoped sandbox APIs.
 - `SEACLOUD_USER_ID`: user scope header.
 - `SEACLOUD_PROJECT_ID`: project or team scope header.
+
+Endpoint priority is `--base-url`, `SEACLOUD_SANDBOX_URL`,
+`SEACLOUD_BASE_URL`, then `https://cloud.seaart.ai/api/sandbox/v1`.
 
 ## Recovery
 

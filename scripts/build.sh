@@ -8,8 +8,8 @@ VERSION="${VERSION:-$(node -p "require('./package.json').version" 2>/dev/null ||
 DIST="dist"
 
 # Production URLs — use online defaults, allow override via env when needed.
-SEACLOUD_BASE_URL="${SEACLOUD_BASE_URL:-https://real-cloud.seaart.dev}"
-SEACLOUD_MODELS_URL="${SEACLOUD_MODELS_URL:-https://sea-cloud-admin-web.real-cloud.seaart.dev}"
+SEACLOUD_BASE_URL="${SEACLOUD_BASE_URL:-https://cloud.seaart.ai}"
+SEACLOUD_MODELS_URL="${SEACLOUD_MODELS_URL:-https://sea-cloud-admin-web.real-cloud.seaart.ai}"
 SEACLOUD_MODEL_CONTRACTS_URL="${SEACLOUD_MODEL_CONTRACTS_URL:-$SEACLOUD_MODELS_URL}"
 SEACLOUD_UPLOAD_URL="${SEACLOUD_UPLOAD_URL:-${SEACLOUD_MODELS_URL%/}/api/v1/storage/files}"
 SEACLOUD_GENERATION_URL="${SEACLOUD_GENERATION_URL:-$SEACLOUD_BASE_URL}"

@@ -11,11 +11,11 @@ func TestDefaultUploadEndpointUsesPublishedStorageEndpoint(t *testing.T) {
 	t.Setenv(EnvUploadURL, "")
 	t.Setenv("SEACLOUD_MODELS_URL", "")
 	old := DefaultUploadURL
-	DefaultUploadURL = "https://sea-cloud-admin-web.real-cloud.seaart.dev/api/v1/storage/files"
+	DefaultUploadURL = "https://sea-cloud-admin-web.real-cloud.seaart.ai/api/v1/storage/files"
 	t.Cleanup(func() { DefaultUploadURL = old })
 
 	got := DefaultUploadEndpoint()
-	want := "https://sea-cloud-admin-web.real-cloud.seaart.dev/api/v1/storage/files"
+	want := "https://sea-cloud-admin-web.real-cloud.seaart.ai/api/v1/storage/files"
 	if got != want {
 		t.Fatalf("DefaultUploadEndpoint() = %q, want %q", got, want)
 	}
